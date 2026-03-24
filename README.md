@@ -19,7 +19,7 @@ Ca profesor, vreau să configurez tipul și dificultatea testelor generate, pent
 ### US-8
 Ca profesor, vreau să încarc PDF-uri și videoclipuri care sunt procesate automat, astfel încât agenții să poată folosi conținutul lor imediat.
 ### US-9
-Ca profesor, vreau sa mi pot crea o clasa.
+Ca elev, vreau să pot accesa rezumate scurte și flashcard-uri generate automat din cursurile lungi, pentru a putea repeta rapid și eficient materia înainte de un examen.
 ### US-10
 Ca admin, vreau să gestionez utilizatorii și cursurile din platformă, pentru a menține ordinea și accesul corect.
 
