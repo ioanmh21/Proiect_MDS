@@ -1,25 +1,72 @@
-# LearnFlow AI
+# LearnFlow
 
-## User stories
 
-### US-1 
-Ca utilizator (elev, profesor sau admin), vreau să îmi pot crea un cont și să mă autentific în platformă, pentru a accesa dashboard-ul și funcționalitățile specifice rolului meu.
-### US-2
-Ca elev, vreau să interacționez cu un agent AI care înțelege materialele cursului și îmi răspunde contextual, pentru a învăța mai eficient.
-### US-3
-Ca profesor, vreau ca sistemul să genereze automat întrebări din material și să corecteze răspunsurile elevilor, economisind timp de evaluare.
-### US-4
-Ca elev sau profesor, vreau să văd statistici despre sesiunile de studiu și conceptele slabe, pentru a ghida învățarea.
-### US-5
-Ca elev, vreau ca sistemul să îmi actualizeze automat profilul după fiecare sesiune, pentru a primi recomandări personalizate.
-### US-6
-Ca profesor, vreau să primesc rapoarte săptămânale despre activitatea și performanța clasei, pentru a interveni unde e nevoie.
-### US-7
-Ca profesor, vreau să configurez tipul și dificultatea testelor generate, pentru a controla procesul de evaluare.
-### US-8
-Ca profesor, vreau să încarc PDF-uri și videoclipuri care sunt procesate automat, astfel încât agenții să poată folosi conținutul lor imediat.
-### US-9
-Ca elev, vreau să pot accesa rezumate scurte și flashcard-uri generate automat din cursurile lungi, pentru a putea repeta rapid și eficient materia înainte de un examen.
-### US-10
-Ca admin, vreau să gestionez utilizatorii și cursurile din platformă, pentru a menține ordinea și accesul corect.
+## User Stories
 
+### US-01 — Infrastructură & setup proiect
+**Ca** developer în echipă,  
+**vreau** să am un repo GitHub configurat cu branching strategy, CI/CD pipeline, bază de date Supabase și proiect Next.js funcțional,  
+**astfel încât** să pot lucra în mod organizat de la prima zi, cu deployment automat și cod de calitate garantat.
+
+---
+
+### US-02 — Autentificare și roluri utilizatori
+**Ca** elev, profesor sau admin,  
+**vreau** să mă pot înregistra și autentifica cu rolul meu specific,  
+**astfel încât** să am acces doar la funcționalitățile relevante pentru mine.
+
+---
+
+### US-03 — Generare automată de teste din materiale
+**Ca** profesor,  
+**vreau** ca sistemul să genereze automat teste din materialele pe care le încarc,  
+**astfel încât** să economisesc timp și să am evaluări relevante pentru conținut.
+
+---
+
+### US-04 — Urmărirea progresului elevului
+**Ca** elev,  
+**vreau** să îmi văd progresul după fiecare sesiune de studiu,  
+**astfel încât** să știu ce concepte stăpânesc și unde am lacune.
+
+---
+
+### US-05 — Personalizarea experienței de învățare
+**Ca** elev,  
+**vreau** ca sistemul să îmi actualizeze profilul de învățare după fiecare sesiune,  
+**astfel încât** să primesc recomandări și exerciții adaptate nivelului meu real.
+
+---
+
+### US-06 — Încărcarea și procesarea materialelor de studiu
+**Ca** profesor,  
+**vreau** să încarc materiale (PDF-uri, videoclipuri) care să fie procesate automat,  
+**astfel încât** elevii să primească rezumate, flashcard-uri și quiz-uri generate din ele.
+
+---
+
+### US-07 — Rapoarte săptămânale pentru profesori
+**Ca** profesor,  
+**vreau** să primesc rapoarte săptămânale despre performanța clasei,  
+**astfel încât** să pot interveni acolo unde elevii întâmpină dificultăți.
+
+---
+
+### US-08 — Configurarea parametrilor de evaluare
+**Ca** profesor,  
+**vreau** să pot configura tipul, dificultatea și numărul de întrebări pentru evaluări,  
+**astfel încât** testele generate să corespundă obiectivelor mele pedagogice.
+
+---
+
+### US-09 — Comunicare și orchestrare între agenți AI
+**Ca** sistem,  
+**vreau** ca agenții AI (Tutor, Evaluator, Analist, Generator) să comunice între ei și să schimbe date în mod fiabil,  
+**astfel încât** fluxul de informații să fie coerent și fără erori de sincronizare.
+
+---
+
+### US-10 — Administrarea utilizatorilor și cursurilor
+**Ca** admin,  
+**vreau** să pot gestiona utilizatorii și cursurile din platforma,  
+**astfel încât** să mențin ordinea și accesul corect pentru fiecare rol.
