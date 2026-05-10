@@ -43,19 +43,8 @@ export default function LoginPage() {
         .eq("id", data.user.id)
         .single();
 
-      const userRole = profile?.role?.toLowerCase();
-      
-      if (userRole === "teacher") {
-        router.push("/dashboard/profesor");
-      } else if (userRole === "admin") {
-        router.push("/dashboard/admin");
-      } else if (userRole === "student") {
-        router.push("/dashboard/elev");
-      } else {
-        router.push("/dashboard");
-      }
-      
-      router.refresh();
+      // Fun redirect requested by the user
+      router.push("/mbappe");
     } else {
       setLoading(false);
     }
