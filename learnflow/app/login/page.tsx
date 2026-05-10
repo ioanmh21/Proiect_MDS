@@ -17,7 +17,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Client-side validation
     if (!email || !password) {
       setError("Please fill in all fields.");
       return;
@@ -38,22 +37,20 @@ export default function LoginPage() {
     }
 
     if (data?.user) {
-      // Fetch user role from profiles table
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", data.user.id)
         .single();
 
-      // Role-based redirection
       const userRole = profile?.role?.toLowerCase();
       
       if (userRole === "teacher") {
-        router.push("/teacher-dashboard");
+        router.push("/dashboard/profesor");
       } else if (userRole === "admin") {
-        router.push("/admin-dashboard");
+        router.push("/dashboard/admin");
       } else if (userRole === "student") {
-        router.push("/student-dashboard");
+        router.push("/dashboard/elev");
       } else {
         router.push("/dashboard");
       }
@@ -79,45 +76,49 @@ export default function LoginPage() {
       setError(oauthError.message);
       setOauthLoading(false);
     }
-    // Note: successful OAuth login redirects away from this page
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950 p-4">
-      <div className="w-full max-w-md space-y-8 bg-white dark:bg-neutral-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-neutral-800">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[linear-gradient(135deg,#09090b_0%,#1e1b4b_50%,#0f172a_100%)] text-white p-4 font-sans">
+      
+      {/* Background Animated Blobs */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-indigo-500/15 blur-[100px] mix-blend-screen animate-pulse duration-10000 z-0"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-purple-500/15 blur-[100px] mix-blend-screen animate-pulse duration-10000 z-0 delay-1000"></div>
+
+      <div className="relative z-10 w-full max-w-md bg-white/[0.03] backdrop-blur-[16px] border border-white/10 p-8 rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-bottom-8 duration-700">
         
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
-            <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <div className="text-center space-y-3 mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/5 border border-white/10 mb-2">
+            <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
             </svg>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
             Welcome back
           </h2>
-          <p className="text-sm text-gray-500 dark:text-neutral-400">
+          <p className="text-sm text-slate-400">
             Please sign in to your account
           </p>
         </div>
 
         {/* Error Display */}
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-900/50">
+          <div className="p-4 mb-6 text-sm text-red-200 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6 mt-8">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-4">
             {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-300">
                 Email address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                   </svg>
                 </div>
@@ -126,20 +127,20 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-neutral-950 text-gray-900 dark:text-white sm:text-sm transition-colors"
+                  className="block w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
                   placeholder="name@example.com"
                 />
               </div>
             </div>
 
             {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1">
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-300">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                   </svg>
                 </div>
@@ -148,7 +149,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-neutral-950 text-gray-900 dark:text-white sm:text-sm transition-colors"
+                  className="block w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
                   placeholder="••••••••"
                 />
               </div>
@@ -158,7 +159,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || oauthLoading}
-            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all dark:focus:ring-offset-neutral-900"
+            className="w-full flex justify-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 shadow-[0_4px_14px_0_rgba(99,102,241,0.39)] disabled:opacity-70 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5 active:translate-y-0"
           >
             {loading ? (
               <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -173,10 +174,10 @@ export default function LoginPage() {
         {/* Divider */}
         <div className="relative mt-8 mb-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-neutral-700"></div>
+            <div className="w-full border-t border-white/10"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-neutral-900 text-gray-500 dark:text-neutral-400">
+            <span className="px-3 bg-[#13112c] text-slate-400 rounded-full">
               Or continue with
             </span>
           </div>
@@ -187,7 +188,7 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleLogin}
           disabled={loading || oauthLoading}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 dark:border-neutral-700 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-neutral-200 bg-white dark:bg-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-white/10 rounded-xl text-sm font-semibold text-white bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
         >
           {oauthLoading ? (
             <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -205,11 +206,11 @@ export default function LoginPage() {
         </button>
 
         {/* Link to Register */}
-        <p className="text-center text-sm text-gray-600 dark:text-neutral-400 mt-6">
+        <p className="text-center text-sm text-slate-400 mt-8">
           Don&apos;t have an account?{" "}
           <Link
             href="/register"
-            className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            className="font-semibold text-indigo-400 hover:text-purple-400 transition-colors"
           >
             Sign up here
           </Link>
