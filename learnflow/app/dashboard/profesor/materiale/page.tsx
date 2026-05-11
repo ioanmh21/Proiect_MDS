@@ -1,9 +1,14 @@
 'use client';
 
-import React from 'react';
-import { FileUp, FileText, Video, Search, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileUp, FileText, Video, Search, Filter, X } from 'lucide-react';
+import FileUploader from '@/components/FileUploader';
+import MaterialMetadataForm from '@/components/MaterialMetadataForm';
 
 export default function MaterialePage() {
+  const [showUploader, setShowUploader] = useState(false);
+  const [showMetadataForm, setShowMetadataForm] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState('');
   const materials = [
     { id: 1, title: 'Curs 4: Funcții Exponențiale', type: 'PDF', date: '10 Oct 2026', size: '2.4 MB' },
     { id: 2, title: 'Rezolvare Exerciții Seminar 3', type: 'Video', date: '08 Oct 2026', size: '145 MB' },
@@ -19,13 +24,50 @@ export default function MaterialePage() {
           <p className="text-slate-400">Gestionează cursurile, testele și materialele video.</p>
         </div>
         <button 
-          onClick={() => alert("Încărcarea va fi disponibilă în curând!")}
+          onClick={() => setShowUploader(true)}
           className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold transition-all shadow-lg flex items-center gap-2"
         >
           <FileUp className="w-5 h-5" />
           <span>Încarcă Fișier</span>
         </button>
       </div>
+
+      {showUploader && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <FileUploader 
+            onClose={() => setShowUploader(false)} 
+            onUploadSuccess={(url, type, name) => {
+              console.log('Upload success:', url, type, name);
+              setUploadedFileUrl(url);
+              setShowUploader(false);
+              setShowMetadataForm(true);
+            }} 
+          />
+        </div>
+      )}
+
+      {showMetadataForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-2xl my-auto">
+            <div className="relative">
+              <button 
+                onClick={() => setShowMetadataForm(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <MaterialMetadataForm 
+                fileUrl={uploadedFileUrl} 
+                onSuccess={() => {
+                  setTimeout(() => {
+                    setShowMetadataForm(false);
+                  }, 2000);
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-center bg-white/[0.02]">

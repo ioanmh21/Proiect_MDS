@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   FileUp, 
   FileText, 
@@ -32,6 +33,8 @@ const studentsAtRisk = [
 const chartData = [45, 52, 38, 65, 78, 62, 85, 90, 88, 95];
 
 export default function TeacherDashboard() {
+  const router = useRouter();
+
   const handleAction = (message: string) => {
     alert(message);
   };
@@ -46,7 +49,7 @@ export default function TeacherDashboard() {
         
         {/* Big Upload Button */}
         <button 
-          onClick={() => handleAction("Funcția de încărcare material va fi disponibilă curând!")}
+          onClick={() => router.push('/dashboard/profesor/materiale')}
           className="group relative px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold transition-all shadow-[0_0_20px_rgba(124,58,237,0.3)] hover:shadow-[0_0_30px_rgba(124,58,237,0.5)] flex items-center gap-2 overflow-hidden"
         >
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
