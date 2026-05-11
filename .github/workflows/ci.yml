@@ -92,4 +92,7 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('learnflow/package-lock.json') }}-
 
       - name: Creare Build (Next.js)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "dummy"
         run: npm run build
