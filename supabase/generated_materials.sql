@@ -9,6 +9,9 @@
 -- ─────────────────────────────────────────────
 
 ALTER TABLE materials
+  ADD COLUMN IF NOT EXISTS subject  text,
+  ADD COLUMN IF NOT EXISTS grade    integer,
+  ADD COLUMN IF NOT EXISTS chapter  text,
   ADD COLUMN IF NOT EXISTS summary  jsonb,
   ADD COLUMN IF NOT EXISTS notes    jsonb;
 

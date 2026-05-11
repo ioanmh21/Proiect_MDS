@@ -25,12 +25,16 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    console.log("Attempting login for:", email);
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    console.log("Login result:", { data, signInError });
+
     if (signInError) {
+      console.error("Login Error:", signInError.message);
       setError(signInError.message);
       setLoading(false);
       return;
@@ -44,9 +48,11 @@ export default function LoginPage() {
         .single();
 
       if (profile?.role === 'teacher' || profile?.role === 'profesor') {
-        window.location.href = "/dashboard/profesor";
+        router.push("/dashboard/profesor");
+        router.refresh();
       } else {
-        window.location.href = "/dashboard/elev";
+        router.push("/dashboard/elev");
+        router.refresh();
       }
     } else {
       setLoading(false);

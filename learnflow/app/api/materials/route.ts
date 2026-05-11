@@ -1,3 +1,6 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 
 // ─────────────────────────────────────────────────────────────────
 // GET /api/materials — Listează materialele profesorului curent
@@ -81,19 +84,48 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data: material, error } = await supabase
+  const insertPayload = {
+    teacher_id: user.id,
+    title: body.title.trim(),
+    description: body.description?.trim() || null,
+    subject: body.subject || null,
+    grade: body.grade || null,
+    chapter: body.chapter?.trim() || null,
+    file_url: body.fileUrl || '',
+    type: 'pdf' as const,
+    status: 'pending' as const,
+    class_name: body.grade ? body.grade.toString() : null,
+  };
+
+  console.log('[Materials API] Încercăm să inserăm:', insertPayload);
+
+  // 100% fail-safe approach: get the exact session token and force it in the headers
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  
+  let supabaseForInsert = supabase;
+  
+  if (token) {
+    console.log('[Materials API] Access token găsit. Forțăm antetul de autorizare!');
+    const { createClient: createBaseClient } = require('@supabase/supabase-js');
+    supabaseForInsert = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+  } else {
+    console.warn('[Materials API] ATENȚIE: Nu s-a putut obține access_token din sesiune!');
+  }
+
+  const { data: material, error } = await supabaseForInsert
     .from('materials')
-    .insert({
-      teacher_id: user.id,
-      title: body.title.trim(),
-      description: body.description?.trim() || null,
-      subject: body.subject || null,
-      grade: body.grade || null,
-      chapter: body.chapter?.trim() || null,
-      file_url: body.fileUrl || '',
-      type: 'pdf' as const,
-      status: 'pending' as const,
-    })
+    .insert(insertPayload)
     .select('id, title, description, type, file_url, status, class_name, subject, grade, chapter, created_at')
     .single();
 
@@ -157,7 +189,10 @@ export async function PATCH(request: NextRequest) {
   const updateData: Record<string, unknown> = {};
   if (body.title !== undefined) updateData.title = body.title.trim();
   if (body.subject !== undefined) updateData.subject = body.subject || null;
-  if (body.grade !== undefined) updateData.grade = body.grade || null;
+  if (body.grade !== undefined) {
+    updateData.grade = body.grade || null;
+    updateData.class_name = body.grade ? body.grade.toString() : null;
+  }
   if (body.chapter !== undefined) updateData.chapter = body.chapter?.trim() || null;
   if (body.description !== undefined) updateData.description = body.description?.trim() || null;
 
@@ -168,7 +203,28 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const { data: material, error } = await supabase
+  // 100% fail-safe approach pentru PATCH
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  
+  let supabaseForUpdate = supabase;
+  
+  if (token) {
+    const { createClient: createBaseClient } = require('@supabase/supabase-js');
+    supabaseForUpdate = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
+    );
+  }
+
+  const { data: material, error } = await supabaseForUpdate
     .from('materials')
     .update(updateData)
     .eq('id', body.id)
