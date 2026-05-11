@@ -1,0 +1,29 @@
+# ===================================================
+# LearnFlow - Python Agent Dependencies
+# ===================================================
+
+# Core Agent Framework
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-google-vertexai>=2.0.0
+
+# Google Cloud (Vertex AI)
+google-cloud-aiplatform>=1.60.0
+
+# Data Validation
+pydantic>=2.0.0
+
+# Database
+supabase>=2.0.0
+
+# Video Pipeline
+yt-dlp
+openai-whisper
+torch
+
+# API Server (pentru Next.js <-> Python)
+fastapi>=0.110.0
+uvicorn>=0.29.0
+
+# Utils
+python-dotenv>=1.0.0
