@@ -1,0 +1,103 @@
+name: Next.js 14 CI
+
+# Declanșăm workflow-ul automat la orice push sau pull request
+on:
+  push:
+    # Rulează la push pe orice branch
+    branches: [ "**" ] 
+  pull_request:
+    # Rulează la pull request-uri deschise către orice branch
+    branches: [ "**" ]
+
+# Definim cele 3 job-uri cerute care rulează în paralel sau secvențial
+jobs:
+  # ==========================================
+  # JOB 1: Verificarea codului cu ESLint
+  # ==========================================
+  lint:
+    name: Lint (ESLint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descărcare cod sursă (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurare Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Utilizăm Node 20, stabil pentru Next.js 14
+          # Aceasta este metoda modernă pentru cache la node_modules. 
+          # Cachează folderul ~/.npm, accelerând semnificativ 'npm ci'.
+          cache: 'npm'
+
+      - name: Instalare dependențe
+        run: npm ci # Instalare curată și rapidă, bazată pe package-lock.json
+
+      - name: Rulare ESLint
+        run: npm run lint
+        # Erorile de linting vor opri workflow-ul aici și vor fi afișate clar în consolă.
+
+  # ==========================================
+  # JOB 2: Verificarea tipurilor (TypeScript)
+  # ==========================================
+  type-check:
+    name: Type Check (tsc)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descărcare cod sursă (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurare Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalare dependențe
+        run: npm ci
+
+      - name: Verificarea tipurilor TypeScript
+        run: npx tsc --noEmit
+        # --noEmit indică compilatorului să nu genereze fișiere JavaScript (doar verifică).
+        # Tipurile incorecte sau erorile TSC vor apărea vizibil în panoul GitHub Actions.
+
+  # ==========================================
+  # JOB 3: Build Next.js
+  # ==========================================
+  build:
+    name: Build (Next Build)
+    # Așteptăm ca lint-ul și type-check-ul să treacă cu succes. 
+    # Astfel evităm un build lung dacă codul e oricum invalid (opțional, dar recomandat).
+    needs: [lint, type-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descărcare cod sursă (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurare Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalare dependențe
+        run: npm ci
+
+      # Adăugăm cache suplimentar pentru directorul .next/cache specific Next.js.
+      # Asta face ca rebuild-urile să fie extrem de rapide (păstrează cache-ul de build precedent).
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          # Căile care trebuie stocate în cache
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/.next/cache
+          # Generăm o cheie unică în funcție de dependențe și fișierele sursă
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**/*.[jt]s', '**/*.[jt]sx') }}
+          # Dacă cheia de mai sus nu e găsită, facem fallback pe cheia de bază
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+
+      - name: Creare Build (Next.js)
+        run: npm run build
+        # Aici Next.js verifică structura aplicației și compilează proiectul.
+        # Erorile de build sunt prinse și logate automat.
