@@ -37,6 +37,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       student_profiles: {
         Row: {
@@ -66,6 +67,7 @@ export interface Database {
           ai_notes?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       materials: {
         Row: {
@@ -101,6 +103,7 @@ export interface Database {
           class_name?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       chunks: {
         Row: {
@@ -127,6 +130,7 @@ export interface Database {
           embedding?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       study_sessions: {
         Row: {
@@ -153,6 +157,7 @@ export interface Database {
           ended_at?: string | null
           material_id?: string | null
         }
+        Relationships: []
       }
       test_results: {
         Row: {
@@ -185,6 +190,7 @@ export interface Database {
           feedback?: Json | null
           created_at?: string
         }
+        Relationships: []
       }
     }
     Views: {
