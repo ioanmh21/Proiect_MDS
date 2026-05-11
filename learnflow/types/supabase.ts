@@ -79,6 +79,9 @@ export interface Database {
           file_url: string
           status: 'pending' | 'processing' | 'completed' | 'error'
           class_name: string | null
+          subject: string | null
+          grade: number | null
+          chapter: string | null
           /** Rezumat generat AI: { introducere, capitole[] } */
           summary: Json | null
           /** Notițe generate AI: array de bullet-point strings */
@@ -94,6 +97,9 @@ export interface Database {
           file_url: string
           status?: 'pending' | 'processing' | 'completed' | 'error'
           class_name?: string | null
+          subject?: string | null
+          grade?: number | null
+          chapter?: string | null
           summary?: Json | null
           notes?: Json | null
           created_at?: string
@@ -107,6 +113,9 @@ export interface Database {
           file_url?: string
           status?: 'pending' | 'processing' | 'completed' | 'error'
           class_name?: string | null
+          subject?: string | null
+          grade?: number | null
+          chapter?: string | null
           summary?: Json | null
           notes?: Json | null
           created_at?: string

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,7 +11,7 @@ const formSchema = z.object({
   subject: z.enum([
     'Matematică', 'Fizică', 'Chimie', 'Biologie', 'Informatică',
     'Istorie', 'Geografie', 'Română', 'Engleză'
-  ], { required_error: 'Te rugăm să selectezi o materie.' }),
+  ], { error: 'Te rugăm să selectezi o materie.' }),
   grade: z.string().refine((val) => {
     const num = parseInt(val, 10);
     return num >= 1 && num <= 12;
@@ -22,13 +22,28 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+/** Datele unui material existent, folosite pentru pre-popularea formularului în edit mode */
+export interface MaterialInitialData {
+  id: string;
+  title: string;
+  subject: string | null;
+  grade: number | null;
+  chapter: string | null;
+  description: string | null;
+}
+
 export default function MaterialMetadataForm({ 
   fileUrl, 
-  onSuccess 
+  onSuccess,
+  initialData,
 }: { 
   fileUrl?: string;
   onSuccess?: () => void;
+  /** Dacă este furnizat, formularul intră în edit mode și pre-populează câmpurile */
+  initialData?: MaterialInitialData;
 }) {
+  const isEditMode = !!initialData;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -36,10 +51,33 @@ export default function MaterialMetadataForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
+    defaultValues: initialData
+      ? {
+          title: initialData.title,
+          subject: (initialData.subject as FormData['subject']) || undefined,
+          grade: initialData.grade?.toString() || '',
+          chapter: initialData.chapter || '',
+          description: initialData.description || '',
+        }
+      : undefined,
   });
+
+  // Resetăm formularul când initialData se schimbă (ex: click pe alt material)
+  useEffect(() => {
+    if (initialData) {
+      reset({
+        title: initialData.title,
+        subject: (initialData.subject as FormData['subject']) || undefined,
+        grade: initialData.grade?.toString() || '',
+        chapter: initialData.chapter || '',
+        description: initialData.description || '',
+      });
+    }
+  }, [initialData, reset]);
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
@@ -47,26 +85,50 @@ export default function MaterialMetadataForm({
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/materials/ingest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...data,
-          grade: parseInt(data.grade, 10),
-          fileUrl: fileUrl || '',
-        }),
-      });
+      if (isEditMode) {
+        // ── EDIT MODE: PATCH /api/materials ──
+        const response = await fetch('/api/materials', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: initialData.id,
+            title: data.title,
+            subject: data.subject,
+            grade: parseInt(data.grade, 10),
+            chapter: data.chapter,
+            description: data.description || null,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Eroare la procesarea materialului.');
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Eroare la actualizarea materialului.');
+        }
+      } else {
+        // ── CREATE MODE: POST /api/materials ──
+        const response = await fetch('/api/materials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: data.title,
+            subject: data.subject,
+            grade: parseInt(data.grade, 10),
+            chapter: data.chapter,
+            description: data.description || null,
+            fileUrl: fileUrl || '',
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Eroare la procesarea materialului.');
+        }
       }
 
       setSubmitStatus('success');
       setTimeout(() => {
         if (onSuccess) onSuccess();
-      }, 2000);
+      }, 1500);
       
     } catch (error: unknown) {
       setSubmitStatus('error');
@@ -80,9 +142,13 @@ export default function MaterialMetadataForm({
     return (
       <div className="flex flex-col items-center justify-center p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl animate-in zoom-in-95 duration-300">
         <CheckCircle2 className="w-16 h-16 text-emerald-400 mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">Material Procesat cu Succes!</h3>
+        <h3 className="text-xl font-bold text-white mb-2">
+          {isEditMode ? 'Material Actualizat cu Succes!' : 'Material Procesat cu Succes!'}
+        </h3>
         <p className="text-emerald-200/80 text-center text-sm">
-          Detaliile au fost salvate și materialul a fost adăugat în sistem.
+          {isEditMode
+            ? 'Modificările au fost salvate.'
+            : 'Detaliile au fost salvate și materialul a fost adăugat în sistem.'}
         </p>
       </div>
     );
@@ -95,8 +161,14 @@ export default function MaterialMetadataForm({
           <BookOpen className="w-6 h-6 text-purple-400" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">Detalii Material Educațional</h2>
-          <p className="text-sm text-slate-400">Completează informațiile pentru a salva materialul.</p>
+          <h2 className="text-xl font-bold text-white">
+            {isEditMode ? 'Editează Material Educațional' : 'Detalii Material Educațional'}
+          </h2>
+          <p className="text-sm text-slate-400">
+            {isEditMode
+              ? 'Modifică informațiile materialului.'
+              : 'Completează informațiile pentru a salva materialul.'}
+          </p>
         </div>
       </div>
 
@@ -224,10 +296,10 @@ export default function MaterialMetadataForm({
           {isSubmitting ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Se procesează...
+              {isEditMode ? 'Se actualizează...' : 'Se procesează...'}
             </>
           ) : (
-            'Salvează Materialul'
+            isEditMode ? 'Actualizează Materialul' : 'Salvează Materialul'
           )}
         </button>
       </form>
