@@ -47,7 +47,8 @@ export default function MaterialMetadataForm({
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/materials/ingest', {
+      // 1. Create the material in the database
+      const createResponse = await fetch('/api/materials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,8 +60,25 @@ export default function MaterialMetadataForm({
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Eroare la procesarea materialului.');
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        throw new Error(errorData.error || 'Eroare la crearea materialului.');
+      }
+
+      const { materialId } = await createResponse.json();
+
+      // 2. Trigger the ingestion background job
+      const ingestResponse = await fetch('/api/materials/ingest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ materialId }),
+      });
+
+      if (!ingestResponse.ok) {
+        const errorData = await ingestResponse.json();
+        throw new Error(errorData.error || 'Eroare la pornirea procesării materialului.');
       }
 
       setSubmitStatus('success');

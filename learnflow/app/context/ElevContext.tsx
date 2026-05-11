@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 interface ElevContextType {
   userName: string;
+  className: string | null;
   isLoading: boolean;
   handleSignOut: () => Promise<void>;
 }
@@ -14,6 +15,7 @@ const ElevContext = createContext<ElevContextType | undefined>(undefined);
 
 export function ElevProvider({ children }: { children: React.ReactNode }) {
   const [userName, setUserName] = useState("Elev");
+  const [className, setClassName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
@@ -25,12 +27,15 @@ export function ElevProvider({ children }: { children: React.ReactNode }) {
         if (user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("first_name")
+            .select("first_name, class_name")
             .eq("id", user.id)
             .single();
           
           if (profile?.first_name) {
             setUserName(profile.first_name);
+          }
+          if (profile?.class_name) {
+            setClassName(profile.class_name);
           }
         }
       } catch (error) {
@@ -50,6 +55,7 @@ export function ElevProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     userName,
+    className,
     isLoading,
     handleSignOut,
   };

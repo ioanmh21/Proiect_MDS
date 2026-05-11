@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useElev } from '@/app/context/ElevContext';
+import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 import { 
   BookOpen, 
   Clock, 
@@ -22,12 +24,6 @@ const progressData = {
   testsCompleted: 4
 };
 
-const recentMaterials = [
-  { id: 1, title: "Introducere în React", type: "Video", status: "completed", time: "1h 20m" },
-  { id: 2, title: "Algebră - Funcții de gradul 2", type: "Document", status: "in-progress", time: "45m left" },
-  { id: 3, title: "Fizică - Termodinamică", type: "Quiz", status: "pending", time: "30m" },
-];
-
 const aiRecommendation = {
   title: "Test de Recapitulare: Matematică",
   description: "Pe baza activității tale recente, am pregătit un test personalizat care să te ajute să consolidezi cunoștințele la Algebră.",
@@ -35,8 +31,53 @@ const aiRecommendation = {
   difficulty: "Mediu"
 };
 
+interface Material {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  created_at: string;
+}
+
 export default function StudentDashboard() {
-  const { userName, isLoading } = useElev();
+  const { userName, className, isLoading: isContextLoading } = useElev();
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [isMaterialsLoading, setIsMaterialsLoading] = useState(true);
+  const supabase = createClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchMaterials() {
+      if (!className) return;
+      try {
+        const { data, error } = await supabase
+          .from('materials')
+          .select('id, title, type, status, created_at')
+          .eq('class_name', className)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (data) {
+          setMaterials(data as Material[]);
+        }
+      } catch (error) {
+        console.error('Error fetching materials:', error);
+      } finally {
+        setIsMaterialsLoading(false);
+      }
+    }
+
+    if (!isContextLoading) {
+      if (className) {
+        fetchMaterials();
+      } else {
+        setIsMaterialsLoading(false);
+      }
+    }
+  }, [className, isContextLoading, supabase]);
+
+  const isLoading = isContextLoading || isMaterialsLoading;
+
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 p-6 md:p-8 font-sans selection:bg-purple-500/30">
@@ -120,43 +161,54 @@ export default function StudentDashboard() {
                   </div>
                 ) : (
                   <div className="divide-y divide-white/10">
-                    {recentMaterials.map((material) => (
-                      <div key={material.id} className="p-4 md:p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
-                        <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20 group-hover:scale-105 transition-transform">
-                          {material.type === 'Video' ? <PlayCircle className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-slate-200 truncate">{material.title}</h3>
-                          <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> {material.time}
-                            </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                            <span>{material.type}</span>
+                    {materials.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400">
+                        Nu ai materiale recente pentru clasa ta.
+                      </div>
+                    ) : (
+                      materials.map((material) => (
+                        <div key={material.id} className="p-4 md:p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
+                          <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20 group-hover:scale-105 transition-transform">
+                            {material.type === 'video' ? <PlayCircle className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-slate-200 truncate">{material.title}</h3>
+                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> {new Date(material.created_at).toLocaleDateString()}
+                              </span>
+                              <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+                              <span className="capitalize">{material.type}</span>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 flex items-center">
+                            {material.status === 'completed' && (
+                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <CheckCircle className="w-3 h-3" /> Finalizat
+                              </span>
+                            )}
+                            {material.status === 'processing' && (
+                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                <Clock3 className="w-3 h-3" /> Se procesează
+                              </span>
+                            )}
+                            {material.status === 'pending' && (
+                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                În așteptare
+                              </span>
+                            )}
+                            {material.status === 'error' && (
+                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                Eroare
+                              </span>
+                            )}
+                            <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition-colors ml-2 md:ml-4 shrink-0" />
                           </div>
                         </div>
-
-                        <div className="shrink-0 flex items-center">
-                          {material.status === 'completed' && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              <CheckCircle className="w-3 h-3" /> Finalizat
-                            </span>
-                          )}
-                          {material.status === 'in-progress' && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              <Clock3 className="w-3 h-3" /> În curs
-                            </span>
-                          )}
-                          {material.status === 'pending' && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                              Nefinalizat
-                            </span>
-                          )}
-                          <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition-colors ml-2 md:ml-4 shrink-0" />
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -223,7 +275,10 @@ export default function StudentDashboard() {
 
             {/* Tutor Chat Shortcut */}
             <section>
-              <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6 group cursor-pointer hover:bg-white/[0.05] transition-all">
+              <div 
+                onClick={() => router.push('/dashboard/elev/chat')}
+                className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6 group cursor-pointer hover:bg-white/[0.05] transition-all"
+              >
                 {isLoading ? (
                    <div className="animate-pulse flex items-center gap-4">
                      <div className="h-12 w-12 bg-white/10 rounded-full shrink-0" />

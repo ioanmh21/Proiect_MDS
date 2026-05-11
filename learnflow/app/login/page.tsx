@@ -44,9 +44,9 @@ export default function LoginPage() {
         .single();
 
       if (profile?.role === 'teacher' || profile?.role === 'profesor') {
-        router.push("/dashboard/profesor");
+        window.location.href = "/dashboard/profesor";
       } else {
-        router.push("/dashboard/elev");
+        window.location.href = "/dashboard/elev";
       }
     } else {
       setLoading(false);
