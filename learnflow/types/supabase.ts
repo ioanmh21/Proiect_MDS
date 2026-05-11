@@ -79,6 +79,10 @@ export interface Database {
           file_url: string
           status: 'pending' | 'processing' | 'completed' | 'error'
           class_name: string | null
+          /** Rezumat generat AI: { introducere, capitole[] } */
+          summary: Json | null
+          /** Notițe generate AI: array de bullet-point strings */
+          notes: Json | null
           created_at: string
         }
         Insert: {
@@ -90,6 +94,8 @@ export interface Database {
           file_url: string
           status?: 'pending' | 'processing' | 'completed' | 'error'
           class_name?: string | null
+          summary?: Json | null
+          notes?: Json | null
           created_at?: string
         }
         Update: {
@@ -101,6 +107,8 @@ export interface Database {
           file_url?: string
           status?: 'pending' | 'processing' | 'completed' | 'error'
           class_name?: string | null
+          summary?: Json | null
+          notes?: Json | null
           created_at?: string
         }
         Relationships: []
@@ -238,12 +246,98 @@ export interface Database {
           updated_at?: string
         }
       }
+      flashcards: {
+        Row: {
+          id: string
+          material_id: string
+          termen: string
+          definitie: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          material_id: string
+          termen: string
+          definitie: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          material_id?: string
+          termen?: string
+          definitie?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      quiz_questions: {
+        Row: {
+          id: string
+          material_id: string
+          text: string
+          raspuns: string
+          dificultate: 'usor' | 'mediu' | 'greu'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          material_id: string
+          text: string
+          raspuns: string
+          dificultate: 'usor' | 'mediu' | 'greu'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          material_id?: string
+          text?: string
+          raspuns?: string
+          dificultate?: 'usor' | 'mediu' | 'greu'
+          created_at?: string
+        }
+        Relationships: []
+      }
+      lesson_plans: {
+        Row: {
+          id: string
+          material_id: string
+          durata_min: number
+          /** Array de { titlu, descriere, durata_min } */
+          etape: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          material_id: string
+          durata_min: number
+          etape: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          material_id?: string
+          durata_min?: number
+          etape?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      save_generated_materials: {
+        Args: {
+          p_material_id: string
+          p_summary: Json
+          p_notes: Json
+          p_flashcards: Json
+          p_quiz: Json
+          p_lesson_plan: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       user_role: 'student' | 'teacher'
