@@ -5,6 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export const updateSession = async (request: NextRequest) => {
+  console.log("Middleware running for path:", request.nextUrl.pathname);
   let supabaseResponse = NextResponse.next({
     request: {
       headers: request.headers,
@@ -38,9 +39,9 @@ export const updateSession = async (request: NextRequest) => {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userResponse = await supabase.auth.getUser();
+  console.log("getUser response:", userResponse);
+  const user = userResponse.data.user;
 
   // Protect /dashboard and all its subpaths
   if (request.nextUrl.pathname.startsWith("/dashboard")) {
@@ -52,25 +53,29 @@ export const updateSession = async (request: NextRequest) => {
     }
 
     // If user is logged in, check their role in the profiles table
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
+    if (profileError) {
+      console.error("Error fetching profile in middleware:", profileError);
+    }
+    console.log("Fetched profile:", profile);
+
     const role = profile?.role?.toLowerCase();
     
     // Determine the correct dashboard path based on the role
-    let correctDashboardPath = "/dashboard";
-    if (role === "elev" || role === "student") {
-      correctDashboardPath = "/dashboard/elev";
-    } else if (role === "profesor" || role === "teacher") {
+    let correctDashboardPath = "/dashboard/elev"; // Default fallback to prevent infinite login loops if profile fetch fails
+    
+    if (role === "profesor" || role === "teacher") {
       correctDashboardPath = "/dashboard/profesor";
     } else if (role === "admin") {
       correctDashboardPath = "/dashboard/admin";
     }
 
-    // If they are on the root /dashboard OR trying to access another role's dashboard,
+    // If they are trying to access another role's dashboard or the root /dashboard,
     // redirect them to their specific dashboard
     if (
       request.nextUrl.pathname === "/dashboard" || 

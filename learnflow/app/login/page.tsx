@@ -43,8 +43,11 @@ export default function LoginPage() {
         .eq("id", data.user.id)
         .single();
 
-      // Fun redirect requested by the user
-      router.push("/mbappe");
+      if (profile?.role === 'teacher' || profile?.role === 'profesor') {
+        router.push("/dashboard/profesor");
+      } else {
+        router.push("/dashboard/elev");
+      }
     } else {
       setLoading(false);
     }

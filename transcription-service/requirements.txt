@@ -1,0 +1,27 @@
+# ===================================================
+# LearnFlow — Transcription Microservice Dependencies
+# ===================================================
+# Instalare: pip install -r requirements.txt
+
+# ─── API Framework ────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9     # pentru form-data / file upload
+
+# ─── Transcriere ──────────────────────────────────
+openai-whisper>=20231117    # model Whisper de la OpenAI
+
+# ─── Audio processing ─────────────────────────────
+# ffmpeg trebuie instalat separat (apt / brew / choco)
+# ffprobe vine împreună cu ffmpeg
+
+# ─── Download video ───────────────────────────────
+yt-dlp>=2024.1.0
+
+# ─── Deep Learning (Whisper dependency) ───────────
+# CPU-only torch — mai mic (~800MB vs ~2.5GB cu CUDA)
+torch>=2.0.0
+numpy>=1.24.0
+
+# ─── Utilități ────────────────────────────────────
+python-dotenv>=1.0.0        # variabile de mediu din .env

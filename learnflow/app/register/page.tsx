@@ -26,25 +26,25 @@ export default function RegisterPage() {
     setError(null);
 
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      setError("Please fill in all required fields.");
+      setError("Te rugăm să completezi toate câmpurile obligatorii.");
       setLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError("Parolele nu coincid.");
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+      setError("Parola trebuie să aibă cel puțin 6 caractere.");
       setLoading(false);
       return;
     }
 
     if (role === "student" && !className) {
-      setError("Please specify your class.");
+      setError("Te rugăm să specifici clasa.");
       setLoading(false);
       return;
     }
@@ -75,7 +75,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login?message=Registration successful. Please sign in.");
+      router.push("/login?message=Înregistrare cu succes. Te rugăm să te conectezi.");
     } else {
       setLoading(false);
     }
@@ -98,10 +98,10 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
-            Create an account
+            Creează un cont
           </h2>
           <p className="text-sm text-slate-400">
-            Join our educational platform
+            Alătură-te platformei noastre educaționale
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export default function RegisterPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-300">
-                First Name
+                Prenume
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -139,7 +139,7 @@ export default function RegisterPage() {
 
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-300">
-                Last Name
+                Nume
               </label>
               <input
                 type="text"
@@ -155,7 +155,7 @@ export default function RegisterPage() {
           {/* Email */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-300">
-              Email address
+              Adresă de email
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -178,7 +178,7 @@ export default function RegisterPage() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-300">
-                Password
+                Parolă
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -199,7 +199,7 @@ export default function RegisterPage() {
 
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-300">
-                Confirm
+                Confirmă parola
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -222,7 +222,7 @@ export default function RegisterPage() {
           {/* Role Selection */}
           <div className="pt-2">
             <label className="block text-sm font-medium text-slate-300 mb-3 text-center">
-              I am a...
+              Sunt...
             </label>
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -239,7 +239,7 @@ export default function RegisterPage() {
                   <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path>
                 </svg>
-                <span className="text-sm font-semibold">Student</span>
+                <span className="text-sm font-semibold">Elev</span>
               </button>
 
               <button
@@ -254,7 +254,7 @@ export default function RegisterPage() {
                 <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
-                <span className="text-sm font-semibold">Teacher</span>
+                <span className="text-sm font-semibold">Profesor</span>
               </button>
             </div>
           </div>
@@ -263,7 +263,7 @@ export default function RegisterPage() {
           {role === "student" && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-1.5 mt-2">
               <label className="block text-sm font-medium text-slate-300">
-                Class / Grade
+                Clasă / Grupă
               </label>
               <div className="relative">
                 <input
@@ -272,7 +272,7 @@ export default function RegisterPage() {
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                   className="block w-full pl-4 pr-10 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
-                  placeholder="e.g. 10A, 12th Grade, etc."
+                  placeholder="ex. 10A, clasa a 12-a, etc."
                 />
               </div>
             </div>
@@ -289,19 +289,19 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
             ) : (
-              "Create Account"
+              "Creează Cont"
             )}
           </button>
         </form>
 
         {/* Link to Login */}
         <p className="text-center text-sm text-slate-400 mt-8">
-          Already have an account?{" "}
+          Ai deja un cont?{" "}
           <Link
             href="/login"
             className="font-semibold text-indigo-400 hover:text-purple-400 transition-colors"
           >
-            Sign in here
+            Conectează-te aici
           </Link>
         </p>
       </div>
