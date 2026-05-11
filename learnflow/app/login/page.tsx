@@ -43,7 +43,7 @@ export default function LoginPage() {
         .eq("id", data.user.id)
         .single();
 
-      if (profile?.role === 'teacher') {
+      if (profile?.role === 'teacher' || profile?.role === 'profesor') {
         router.push("/dashboard/profesor");
       } else {
         router.push("/dashboard/elev");
