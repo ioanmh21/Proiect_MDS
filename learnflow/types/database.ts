@@ -42,6 +42,16 @@ export type TestResultRow = Database['public']['Tables']['test_results']['Row'];
 export type TestResultInsert = Database['public']['Tables']['test_results']['Insert'];
 export type TestResultUpdate = Database['public']['Tables']['test_results']['Update'];
 
+// ============================================================================
+// Tipuri pentru Tabela: ingestion_jobs
+// ============================================================================
+export type IngestionJobRow = Database['public']['Tables']['ingestion_jobs']['Row'];
+export type IngestionJobInsert = Database['public']['Tables']['ingestion_jobs']['Insert'];
+export type IngestionJobUpdate = Database['public']['Tables']['ingestion_jobs']['Update'];
+
+/** Status-urile posibile ale unui job de ingestie */
+export type IngestionJobStatus = IngestionJobRow['status'];
+
 
 // ============================================================================
 // Tipuri Utilitare pentru Răspunsurile API (API Responses)

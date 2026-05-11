@@ -108,6 +108,10 @@ export interface Database {
           material_id: string
           content: string
           page_number: number | null
+          /** Secunda de start din video (null pentru chunks din PDF) */
+          video_start_seconds: number | null
+          /** Secunda de end din video (null pentru chunks din PDF) */
+          video_end_seconds: number | null
           embedding: string | null
           created_at: string
         }
@@ -116,6 +120,8 @@ export interface Database {
           material_id: string
           content: string
           page_number?: number | null
+          video_start_seconds?: number | null
+          video_end_seconds?: number | null
           embedding?: string | null
           created_at?: string
         }
@@ -124,6 +130,8 @@ export interface Database {
           material_id?: string
           content?: string
           page_number?: number | null
+          video_start_seconds?: number | null
+          video_end_seconds?: number | null
           embedding?: string | null
           created_at?: string
         }
@@ -184,6 +192,44 @@ export interface Database {
           answers?: Json
           feedback?: Json | null
           created_at?: string
+        }
+      }
+      ingestion_jobs: {
+        Row: {
+          id: string
+          material_id: string
+          status: 'pending' | 'processing' | 'completed' | 'error'
+          progress_pct: number
+          current_step: string | null
+          error_message: string | null
+          chunks_total: number | null
+          chunks_processed: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          material_id: string
+          status?: 'pending' | 'processing' | 'completed' | 'error'
+          progress_pct?: number
+          current_step?: string | null
+          error_message?: string | null
+          chunks_total?: number | null
+          chunks_processed?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          material_id?: string
+          status?: 'pending' | 'processing' | 'completed' | 'error'
+          progress_pct?: number
+          current_step?: string | null
+          error_message?: string | null
+          chunks_total?: number | null
+          chunks_processed?: number | null
+          created_at?: string
+          updated_at?: string
         }
       }
     }
