@@ -52,6 +52,30 @@ export type IngestionJobUpdate = Database['public']['Tables']['ingestion_jobs'][
 /** Status-urile posibile ale unui job de ingestie */
 export type IngestionJobStatus = IngestionJobRow['status'];
 
+// ============================================================================
+// Tipuri pentru Tabela: flashcards
+// ============================================================================
+export type FlashcardRow = Database['public']['Tables']['flashcards']['Row'];
+export type FlashcardInsert = Database['public']['Tables']['flashcards']['Insert'];
+export type FlashcardUpdate = Database['public']['Tables']['flashcards']['Update'];
+
+// ============================================================================
+// Tipuri pentru Tabela: quiz_questions
+// ============================================================================
+export type QuizQuestionRow = Database['public']['Tables']['quiz_questions']['Row'];
+export type QuizQuestionInsert = Database['public']['Tables']['quiz_questions']['Insert'];
+export type QuizQuestionUpdate = Database['public']['Tables']['quiz_questions']['Update'];
+
+/** Nivelurile de dificultate ale unei întrebări de quiz */
+export type QuizDifficulty = QuizQuestionRow['dificultate'];
+
+// ============================================================================
+// Tipuri pentru Tabela: lesson_plans
+// ============================================================================
+export type LessonPlanRow = Database['public']['Tables']['lesson_plans']['Row'];
+export type LessonPlanInsert = Database['public']['Tables']['lesson_plans']['Insert'];
+export type LessonPlanUpdate = Database['public']['Tables']['lesson_plans']['Update'];
+
 
 // ============================================================================
 // Tipuri Utilitare pentru Răspunsurile API (API Responses)
