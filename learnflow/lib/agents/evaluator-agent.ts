@@ -300,6 +300,6 @@ Fii prietenos și încurajator!
     return result.response.text().trim();
   } catch (error) {
     console.error("Eroare la generarea feedback-ului cu Gemini:", error);
-    return \`Răspunsul tău este incorect. Răspunsul corect era: \${correctAnswerStr}.\`;
+    return `Răspunsul tău este incorect. Răspunsul corect era: ${correctAnswerStr}.`;
   }
 }

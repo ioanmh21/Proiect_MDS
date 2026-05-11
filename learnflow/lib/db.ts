@@ -43,6 +43,7 @@ export async function updateWeakConcepts(
 ) {
   const { data, error } = await supabase
     .from('student_profiles')
+    // @ts-expect-error — Supabase typed client infers 'never' for .update() on some tables
     .update({ weak_concepts: concepts })
     .eq('student_id', userId)
     .select()
@@ -65,6 +66,7 @@ export async function saveTestResult(
 ) {
   const { data, error } = await supabase
     .from('test_results')
+    // @ts-expect-error — Supabase typed client infers 'never[]' for .insert() on some tables
     .insert(result)
     .select()
     .single();

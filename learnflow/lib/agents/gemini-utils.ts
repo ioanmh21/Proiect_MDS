@@ -17,7 +17,8 @@ export async function callGeminiWithJsonRetry<T>(
   let retries = 0;
 
   // Convertim schema Zod într-o reprezentare text (JSON Schema) pe care modelul s-o înțeleagă
-  const jsonSchemaStr = JSON.stringify(zodToJsonSchema(schema), null, 2);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jsonSchemaStr = JSON.stringify(zodToJsonSchema(schema as any), null, 2);
 
   while (retries <= maxRetries) {
     try {
