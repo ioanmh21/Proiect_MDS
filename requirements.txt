@@ -5,6 +5,7 @@
 # Core Agent Framework
 langchain>=0.3.0
 langchain-core>=0.3.0
+langchain-text-splitters>=0.3.0
 langchain-google-vertexai>=2.0.0
 
 # Google Cloud (Vertex AI)

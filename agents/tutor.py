@@ -25,6 +25,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import GCP_PROJECT_ID, GCP_LOCATION, MODEL_FAST
+from agents.rag import RAGRetriever
 
 
 # ─────────────────────────────────────────────
@@ -62,7 +63,9 @@ Răspunde în aceeași limbă în care îți scrie studentul.
 # ─────────────────────────────────────────────
 class TutorInput(BaseModel):
     student_question: str
-    material_context: str = "Nu a fost furnizat niciun material de curs."
+    material_id: str = ""              # UUID-ul materialului din Supabase
+    use_rag: bool = True               # Dacă se face retrieval din Supabase
+    material_context: str = ""         # Context manual (fallback dacă RAG e dezactivat)
     student_name: str = "Student"
     student_level: str = "necunoscut"
     weak_points: str = "necunoscute"
@@ -72,6 +75,7 @@ class TutorInput(BaseModel):
 class TutorOutput(BaseModel):
     response: str
     agent: str = "01_tutor"
+    rag_chunks_used: int = 0           # Câte chunk-uri RAG au fost folosite
 
 
 # ─────────────────────────────────────────────
@@ -84,10 +88,11 @@ class TutorAgent:
             model_name=MODEL_FAST,
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
-            temperature=0.4,       # Puțin creativ, dar consistent
+            temperature=0.4,
             max_output_tokens=2048,
         )
         self.output_parser = StrOutputParser()
+        self.rag = RAGRetriever()  # Retriever pgvector
 
     def _build_prompt(self, input_data: TutorInput) -> list:
         """Construiește lista de mesaje pentru LangChain."""
@@ -117,20 +122,51 @@ class TutorAgent:
 
     def run(self, input_data: TutorInput) -> TutorOutput:
         """Rulează agentul și returnează răspunsul."""
-        messages = self._build_prompt(input_data)
+        rag_chunks = 0
 
-        # Trimite la Gemini Flash prin Vertex AI
+        # RAG: aduce context relevant din Supabase dacă e activat
+        if input_data.use_rag and input_data.material_id:
+            rag_result = self.rag.retrieve(
+                query=input_data.student_question,
+                material_id=input_data.material_id,
+            )
+            input_data = input_data.model_copy(
+                update={"material_context": rag_result.context}
+            )
+            rag_chunks = rag_result.chunks_found
+        elif not input_data.material_context:
+            input_data = input_data.model_copy(
+                update={"material_context": "Nu a fost furnizat niciun material de curs."}
+            )
+
+        messages = self._build_prompt(input_data)
         response = self.llm.invoke(messages)
         answer = self.output_parser.invoke(response)
 
-        return TutorOutput(response=answer)
+        return TutorOutput(response=answer, rag_chunks_used=rag_chunks)
 
     async def arun(self, input_data: TutorInput) -> TutorOutput:
         """Versiunea async (pentru FastAPI / streaming)."""
+        rag_chunks = 0
+
+        if input_data.use_rag and input_data.material_id:
+            rag_result = self.rag.retrieve(
+                query=input_data.student_question,
+                material_id=input_data.material_id,
+            )
+            input_data = input_data.model_copy(
+                update={"material_context": rag_result.context}
+            )
+            rag_chunks = rag_result.chunks_found
+        elif not input_data.material_context:
+            input_data = input_data.model_copy(
+                update={"material_context": "Nu a fost furnizat niciun material de curs."}
+            )
+
         messages = self._build_prompt(input_data)
         response = await self.llm.ainvoke(messages)
         answer = self.output_parser.invoke(response)
-        return TutorOutput(response=answer)
+        return TutorOutput(response=answer, rag_chunks_used=rag_chunks)
 
 
 # ─────────────────────────────────────────────
