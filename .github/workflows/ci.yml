@@ -1,6 +1,5 @@
 name: Next.js 14 CI
 
-# Declanșăm workflow-ul automat la orice push sau pull request
 on:
   push:
     # Rulează la push pe orice branch
