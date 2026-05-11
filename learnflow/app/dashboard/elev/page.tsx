@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { 
   BookOpen, 
   Clock, 
@@ -36,14 +37,28 @@ const aiRecommendation = {
 
 export default function StudentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState("Elev");
+  const supabase = createClient();
 
   useEffect(() => {
-    // Simulating data fetch
-    const timer = setTimeout(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.first_name) {
+          setUserName(profile.first_name);
+        }
+      }
       setIsLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    }
+    
+    fetchProfile();
+  }, [supabase]);
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 p-6 md:p-8 font-sans selection:bg-purple-500/30">
@@ -56,7 +71,7 @@ export default function StudentDashboard() {
         <header className="mb-10 flex justify-between items-end">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-2">
-              Salut, Alex! 👋
+              Salut, {userName}! 👋
             </h1>
             <p className="text-slate-400">Bine ai revenit. Iată progresul tău de săptămâna aceasta.</p>
           </div>

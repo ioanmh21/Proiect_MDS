@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { 
   LayoutDashboard, 
   Users, 
@@ -37,6 +38,30 @@ const chartData = [45, 52, 38, 65, 78, 62, 85, 90, 88, 95];
 
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [userName, setUserName] = useState("Profesor");
+  const [initial, setInitial] = useState("P");
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile) {
+          const fullName = `Prof. ${profile.last_name || profile.first_name || ''}`;
+          setUserName(fullName.trim());
+          setInitial((profile.last_name?.[0] || profile.first_name?.[0] || "P").toUpperCase());
+        }
+      }
+    }
+    
+    fetchProfile();
+  }, [supabase]);
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 font-sans flex selection:bg-purple-500/30">
@@ -109,11 +134,11 @@ export default function TeacherDashboard() {
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-white/10">
               <div className="text-right hidden sm:block">
-                <div className="text-sm font-semibold text-white">Prof. Popescu</div>
-                <div className="text-xs text-slate-400">Matematică</div>
+                <div className="text-sm font-semibold text-white">{userName}</div>
+                <div className="text-xs text-slate-400">Profesor</div>
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white shadow-lg border border-white/20">
-                P
+                {initial}
               </div>
             </div>
           </div>
