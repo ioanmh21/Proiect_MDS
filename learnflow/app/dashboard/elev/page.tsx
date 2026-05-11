@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import React from 'react';
+import { useElev } from '@/app/context/ElevContext';
 import { 
   BookOpen, 
   Clock, 
@@ -36,29 +36,7 @@ const aiRecommendation = {
 };
 
 export default function StudentDashboard() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [userName, setUserName] = useState("Elev");
-  const supabase = createClient();
-
-  useEffect(() => {
-    async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
-        
-        if (profile?.first_name) {
-          setUserName(profile.first_name);
-        }
-      }
-      setIsLoading(false);
-    }
-    
-    fetchProfile();
-  }, [supabase]);
+  const { userName, isLoading } = useElev();
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 p-6 md:p-8 font-sans selection:bg-purple-500/30">
