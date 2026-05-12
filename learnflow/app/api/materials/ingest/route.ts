@@ -67,7 +67,7 @@
  */
 function getAdminSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_KEY!;
   if (!url || !key) {
     throw new Error(
       '[IngestRoute] NEXT_PUBLIC_SUPABASE_URL sau SUPABASE_SERVICE_ROLE_KEY lipsesc'
@@ -85,10 +85,12 @@ import { after } from 'next/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient as createServerClient } from '@/utils/supabase/server';
-import {
-  processExistingMaterial,
-  type ProgressUpdate,
-} from '@/lib/agents/ingestion-agent';
+interface ProgressUpdate {
+  progressPct: number;
+  currentStep: string;
+  chunksTotal?: number;
+  chunksProcessed?: number;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Tipuri API
@@ -171,11 +173,18 @@ async function runIngestionJob(
       updated_at: new Date().toISOString(),
     }).eq('id', jobId);
 
-    const { chunkCount } = await processExistingMaterial(
-      materialId,
-      db,
-      onProgress
-    );
+    const response = await fetch("http://127.0.0.1:8000/ingestion/process_pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ material_id: materialId }),
+    });
+
+    if (!response.ok) {
+       throw new Error(`Eroare de la serverul Python: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const chunkCount = data.chunks_count || 0;
 
     await db.from('ingestion_jobs').update({
       status: 'completed',

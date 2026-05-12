@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useElev } from '@/app/context/ElevContext';
 import { MessageCircle, Send, User, BrainCircuit, Loader2, ChevronLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,6 +13,8 @@ interface Message {
 export default function StudentChatPage() {
   const { userName, className } = useElev();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const materialId = searchParams.get('materialId') || '';
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: `Salut, ${userName}! Sunt Tutorul tău AI. Cum te pot ajuta azi cu materialele de la clasă?` }
   ]);
@@ -42,7 +44,8 @@ export default function StudentChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: [...messages, userMessage],
-          className 
+          className,
+          materialId
         }),
       });
 
@@ -61,7 +64,7 @@ export default function StudentChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#020617] text-slate-200 font-sans selection:bg-purple-500/30">
+    <div className="flex flex-col relative h-screen overflow-hidden bg-[#020617] text-slate-200 font-sans selection:bg-purple-500/30">
       
       {/* Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />

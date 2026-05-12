@@ -167,7 +167,11 @@ export default function StudentDashboard() {
                       </div>
                     ) : (
                       materials.map((material) => (
-                        <div key={material.id} className="p-4 md:p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors cursor-pointer group">
+                        <div 
+                          key={material.id} 
+                          onClick={() => material.status === 'completed' ? router.push(`/dashboard/elev/chat?materialId=${material.id}`) : null}
+                          className={`p-4 md:p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group ${material.status === 'completed' ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
+                        >
                           <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20 group-hover:scale-105 transition-transform">
                             {material.type === 'video' ? <PlayCircle className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
                           </div>
@@ -202,6 +206,11 @@ export default function StudentDashboard() {
                             {material.status === 'error' && (
                               <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                                 Eroare
+                              </span>
+                            )}
+                            {material.status === 'completed' && (
+                              <span className="opacity-0 group-hover:opacity-100 hidden sm:inline-flex items-center gap-1 ml-3 text-xs font-medium text-purple-400 transition-opacity duration-300">
+                                <MessageCircle className="w-4 h-4" /> Discută
                               </span>
                             )}
                             <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition-colors ml-2 md:ml-4 shrink-0" />
