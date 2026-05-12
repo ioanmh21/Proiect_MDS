@@ -26,6 +26,7 @@ export async function GET() {
     .from('materials')
     .select('id, title, description, type, file_url, status, class_name, subject, grade, chapter, created_at')
     .eq('teacher_id', user.id)
+    .eq('is_archived', false)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -102,9 +103,9 @@ export async function POST(request: NextRequest) {
   // 100% fail-safe approach: get the exact session token and force it in the headers
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
-  
+
   let supabaseForInsert = supabase;
-  
+
   if (token) {
     console.log('[Materials API] Access token găsit. Forțăm antetul de autorizare!');
     const { createClient: createBaseClient } = require('@supabase/supabase-js');
@@ -206,9 +207,9 @@ export async function PATCH(request: NextRequest) {
   // 100% fail-safe approach pentru PATCH
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
-  
+
   let supabaseForUpdate = supabase;
-  
+
   if (token) {
     const { createClient: createBaseClient } = require('@supabase/supabase-js');
     supabaseForUpdate = createBaseClient(
@@ -241,4 +242,95 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ material });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE /api/materials?id=... — Șterge (Soft Delete) un material
+// ─────────────────────────────────────────────────────────────────
+
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const materialId = searchParams.get('id');
+
+  if (!materialId) {
+    return NextResponse.json(
+      { error: 'ID material lipsă', code: 'MISSING_ID' },
+      { status: 400 }
+    );
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  // 1. Verificare autentificare
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Autentificare necesară', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
+  // 100% fail-safe approach (injectăm Bearer Token-ul direct)
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  let supabaseActionClient = supabase;
+  if (token) {
+    const { createClient: createBaseClient } = require('@supabase/supabase-js');
+    supabaseActionClient = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+  }
+
+  try {
+    // 2. Verificăm dacă materialul există și aparține profesorului
+    const { data: material, error: fetchError } = await supabaseActionClient
+      .from('materials')
+      .select('teacher_id, file_url')
+      .eq('id', materialId)
+      .single();
+
+    if (fetchError || !material) return NextResponse.json({ error: 'Materialul nu a fost găsit' }, { status: 404 });
+    if (material.teacher_id !== user.id) return NextResponse.json({ error: 'Nu ai permisiunea de a șterge' }, { status: 403 });
+
+    // --- ADMIN CLIENT PENTRU ȘTERGERI DE SISTEM ---
+    // Folosim Service Role Key (sau un fallback) pentru a trece de orice regulă RLS care ar bloca ștergerea
+    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+    const supabaseAdmin = require('@supabase/supabase-js').createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      adminKey
+    );
+
+    // 3. Ștergem chunk-urile folosind Admin Client
+    const { error: chunkError } = await supabaseAdmin.from('chunks').delete().eq('material_id', materialId);
+    if (chunkError) {
+      console.error('[DeleteRoute] Eroare ștergere chunks:', chunkError.message);
+    } else {
+      console.log(`[DeleteRoute] Chunk-urile materialului au fost șterse definitiv din pgvector.`);
+    }
+
+    // 4. Ștergem fișierul fizic din Storage
+    if (material.file_url && material.file_url.includes('/storage/v1/object/public/')) {
+      const urlParts = material.file_url.split('/storage/v1/object/public/')[1].split('/');
+      const bucketName = urlParts[0];
+      const filePath = urlParts.slice(1).join('/');
+
+      const { error: storageError } = await supabaseAdmin.storage.from(bucketName).remove([filePath]);
+      if (storageError) {
+        console.warn(`[DeleteRoute] Eroare ștergere Storage: ${storageError.message}`);
+      } else {
+        console.log(`[DeleteRoute] Fișierul fizic a fost șters din bucket-ul ${bucketName}.`);
+      }
+    }
+
+    // 5. Arhivăm (Soft Delete)
+    const { error: updateError } = await supabaseActionClient.from('materials').update({ is_archived: true }).eq('id', materialId);
+    if (updateError) return NextResponse.json({ error: 'Eroare la arhivare în DB' }, { status: 500 });
+
+    return NextResponse.json({ success: true, message: 'Material șters cu succes!' });
+
+  } catch (error) {
+    console.error('[DeleteRoute] Eroare neașteptată:', error);
+    return NextResponse.json({ error: 'Eroare internă de server' }, { status: 500 });
+  }
 }
