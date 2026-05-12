@@ -5,7 +5,8 @@
 
 
 
-
+--am adaugat un camp nou
+ALTER TABLE materials ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE;
 
 
 
