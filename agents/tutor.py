@@ -49,7 +49,7 @@ TUTOR_SYSTEM_PROMPT = """Ești un tutore AI educațional inteligent și empatic,
 
 ## Reguli importante:
 1. Nu inventa informații care nu există în materialul de curs.
-2. Dacă nu știi ceva, spune "Această informație nu se regăsește în materialul de curs."
+2. Dacă informația nu se regăsește în material sau rezultatele sunt irelevante, spune clar acest lucru și roagă studentul să reformuleze întrebarea sau să ofere mai multe detalii (ex: "Nu găsesc această informație în contextul curent. Te poți referi la o secțiune specifică sau poți reformula întrebarea?").
 3. Folosește exemple concrete și analogii când explici concepte complexe.
 4. Încurajează studentul și construiește încrederea în el.
 5. La finalul fiecărui răspuns, pune o întrebare de verificare a înțelegerii.
@@ -110,9 +110,10 @@ class TutorAgent:
 
         # Adaugă istoricul conversației (memorie)
         for msg in input_data.conversation_history:
-            if msg["role"] == "human":
+            role = msg.get("role", "").lower()
+            if role in ["human", "user"]:
                 messages.append(HumanMessage(content=msg["content"]))
-            elif msg["role"] == "ai":
+            elif role in ["ai", "assistant", "model"]:
                 messages.append(AIMessage(content=msg["content"]))
 
         # Adaugă întrebarea curentă
@@ -120,14 +121,54 @@ class TutorAgent:
 
         return messages
 
+    def _rewrite_query_with_history(self, input_data: TutorInput) -> str:
+        """Reformulează întrebarea curentă incluzând contextul din istoric."""
+        print(f"[DEBUG Tutor] History primit (sync): {len(input_data.conversation_history)} mesaje")
+        if not input_data.conversation_history:
+            return input_data.student_question
+
+        # Luăm doar ultimele 4 mesaje pentru a nu consuma prea multe tokenuri
+        history_text = "\n".join([f"{'Student' if m.get('role', '').lower() in ['human', 'user'] else 'Tutor'}: {m['content']}" for m in input_data.conversation_history[-4:]])
+        
+        prompt = f"""Având următorul istoric al conversației, reformulează ultima întrebare a studentului astfel încât să devină o întrebare clară, de sine stătătoare (care include subiectul sau conceptele discutate anterior). Dacă întrebarea este deja completă și nu depinde de istoric, las-o exact așa cum e.
+Istoric:
+{history_text}
+Ultima întrebare: {input_data.student_question}
+Returnează DOAR întrebarea reformulată, fără ghilimele sau alte explicații."""
+        
+        try:
+            res = self.llm.invoke([HumanMessage(content=prompt)])
+            return res.content.strip()
+        except Exception:
+            return input_data.student_question
+
+    async def _arewrite_query_with_history(self, input_data: TutorInput) -> str:
+        """Versiunea async pentru reformularea întrebării."""
+        print(f"[DEBUG Tutor] History primit (async): {len(input_data.conversation_history)} mesaje")
+        if not input_data.conversation_history:
+            return input_data.student_question
+
+        history_text = "\n".join([f"{'Student' if m.get('role', '').lower() in ['human', 'user'] else 'Tutor'}: {m['content']}" for m in input_data.conversation_history[-4:]])
+        prompt = f"""Având următorul istoric al conversației, reformulează ultima întrebare a studentului astfel încât să devină o întrebare clară, de sine stătătoare (care include subiectul sau conceptele discutate anterior). Dacă întrebarea este deja completă și nu depinde de istoric, las-o exact așa cum e.
+Istoric:
+{history_text}
+Ultima întrebare: {input_data.student_question}
+Returnează DOAR întrebarea reformulată, fără ghilimele sau alte explicații."""
+        try:
+            res = await self.llm.ainvoke([HumanMessage(content=prompt)])
+            return res.content.strip()
+        except Exception:
+            return input_data.student_question
+
     def run(self, input_data: TutorInput) -> TutorOutput:
         """Rulează agentul și returnează răspunsul."""
         rag_chunks = 0
 
         # RAG: aduce context relevant din Supabase dacă e activat
         if input_data.use_rag and input_data.material_id:
+            search_query = self._rewrite_query_with_history(input_data)
             rag_result = self.rag.retrieve(
-                query=input_data.student_question,
+                query=search_query,
                 material_id=input_data.material_id,
             )
             input_data = input_data.model_copy(
@@ -150,8 +191,9 @@ class TutorAgent:
         rag_chunks = 0
 
         if input_data.use_rag and input_data.material_id:
+            search_query = await self._arewrite_query_with_history(input_data)
             rag_result = self.rag.retrieve(
-                query=input_data.student_question,
+                query=search_query,
                 material_id=input_data.material_id,
             )
             input_data = input_data.model_copy(

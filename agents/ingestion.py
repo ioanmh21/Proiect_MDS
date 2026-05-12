@@ -50,31 +50,35 @@ class IngestionAgent:
         response = requests.get(file_url, timeout=10)
         response.raise_for_status()
         
-        # 3. Extragem textul
+        # 3. Extragem textul pagină cu pagină (pentru a păstra asocierea chunk→pagină)
         print(f"[IngestionAgent] Extragere text din PDF...")
         pdf_file = io.BytesIO(response.content)
         reader = pypdf.PdfReader(pdf_file)
         
-        full_text = []
-        for page in reader.pages:
+        page_map = {}
+        full_text_parts = []
+        for i, page in enumerate(reader.pages, 1):
             text = page.extract_text()
-            if text:
-                full_text.append(text)
+            if text and text.strip():
+                page_map[i] = text
+                full_text_parts.append(text)
                 
-        raw_text = "\n\n".join(full_text)
-        
-        if not raw_text.strip():
+        if not full_text_parts:
             # Marchează ca eroare
             self.supabase.table("materials").update({"status": "error"}).eq("id", material_id).execute()
-            raise ValueError("PDF-ul nu conține text (sau este doar imagine scanată).")
+            raise ValueError("PDF-ul nu contine text (sau este doar imagine scanata).")
             
-        # 4. Chunking & Embeddings (folosind RAGRetriever care are text_splitter + VertexAI)
+        # 4. Chunking & Embeddings cu asociere pagină-chunk
         print(f"[IngestionAgent] Catre indexare (chunks + embeddings)...")
         # Ne asigurăm că vechile chunkuri sunt șterse dacă re-indexăm
         self.rag.delete_material_chunks(material_id)
         
-        # Salvăm
-        chunks_indexed = self.rag.index_material(text=raw_text, material_id=material_id)
+        # Indexăm cu page_map pentru a asocia fiecare chunk cu pagina sursă
+        chunks_indexed = self.rag.index_material(
+            text="\n\n".join(full_text_parts),
+            material_id=material_id,
+            page_map=page_map,
+        )
         
         # 5. Marcăm ca finalizat
         self.supabase.table("materials").update({"status": "completed"}).eq("id", material_id).execute()
