@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "katex/dist/katex.min.css"; // CSS-ul necesar pentru randarea corectă a formulelor matematice (LaTeX)
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

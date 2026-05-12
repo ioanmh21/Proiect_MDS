@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useElev } from '@/app/context/ElevContext';
 import { MessageCircle, Send, User, BrainCircuit, Loader2, ChevronLeft } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -42,7 +45,7 @@ export default function StudentChatPage() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           messages: [...messages, userMessage],
           className,
           materialId
@@ -65,7 +68,7 @@ export default function StudentChatPage() {
 
   return (
     <div className="flex flex-col relative h-screen overflow-hidden bg-[#020617] text-slate-200 font-sans selection:bg-purple-500/30">
-      
+
       {/* Background Effects */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -73,7 +76,7 @@ export default function StudentChatPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-white/[0.02] border-b border-white/10 relative z-10 backdrop-blur-md">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.push('/dashboard/elev')}
             className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
           >
@@ -98,21 +101,31 @@ export default function StudentChatPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {messages.map((msg, idx) => (
             <div key={idx} className={`flex items-end gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                msg.role === 'user' ? 'bg-purple-600' : 'bg-blue-600'
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-purple-600' : 'bg-blue-600'
+                }`}>
                 {msg.role === 'user' ? <User className="w-4 h-4 text-white" /> : <MessageCircle className="w-4 h-4 text-white" />}
               </div>
-              <div className={`max-w-[80%] px-5 py-3 rounded-2xl ${
-                msg.role === 'user' 
-                  ? 'bg-purple-600 text-white rounded-br-sm' 
+              <div className={`max-w-[80%] px-5 py-3 rounded-2xl ${msg.role === 'user'
+                  ? 'bg-purple-600 text-white rounded-br-sm'
                   : 'bg-slate-800 text-slate-200 rounded-bl-sm border border-white/5 shadow-lg'
-              }`}>
-                <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                }`}>
+                <div className="leading-relaxed overflow-x-auto text-sm md:text-base">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      p: ({ node, ...props }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />,
+                      ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                      ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           ))}
-          
+
           {isLoading && (
             <div className="flex items-end gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
@@ -141,7 +154,7 @@ export default function StudentChatPage() {
             placeholder="Întreabă-mă orice din materialele tale..."
             className="w-full bg-black/40 border border-white/10 rounded-2xl pl-5 pr-14 py-4 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:bg-black/60 transition-all shadow-inner"
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
