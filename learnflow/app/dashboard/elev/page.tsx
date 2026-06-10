@@ -18,7 +18,9 @@ import {
   Clock3,
   Plus,
   Loader2,
-  Key
+  Key,
+  LogOut,
+  PenTool
 } from 'lucide-react';
 
 interface Material {
@@ -30,7 +32,7 @@ interface Material {
 }
 
 export default function StudentDashboard() {
-  const { userName, classes, isLoading: isContextLoading, refreshProfile } = useElev();
+  const { userName, classes, isLoading: isContextLoading, refreshProfile, handleSignOut } = useElev();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [isMaterialsLoading, setIsMaterialsLoading] = useState(true);
   
@@ -92,6 +94,7 @@ export default function StudentDashboard() {
           .from('materials')
           .select('id, title, type, status, created_at')
           .in('class_id', classIds)
+          .eq('is_archived', false)
           .order('created_at', { ascending: false })
           .limit(10);
 
@@ -157,32 +160,42 @@ export default function StudentDashboard() {
             <p className="text-slate-400">Bine ai revenit. Iată progresul tău de săptămâna aceasta.</p>
           </div>
 
-          {/* Join Class Quick Action */}
-          <form onSubmit={handleJoinClass} className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Key className="h-4 w-4 text-slate-400" />
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+            {/* Join Class Quick Action */}
+            <form onSubmit={handleJoinClass} className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Key className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    placeholder="Cod Clasă (ex: A4F9KL)"
+                    className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 w-48 transition-all"
+                  />
                 </div>
-                <input
-                  type="text"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder="Cod Clasă (ex: A4F9KL)"
-                  className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 w-48 transition-all"
-                />
+                <button 
+                  type="submit"
+                  disabled={isJoining || !joinCode}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isJoining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  <span className="hidden sm:inline">Înrolare</span>
+                </button>
               </div>
-              <button 
-                type="submit"
-                disabled={isJoining || !joinCode}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
-              >
-                {isJoining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                <span className="hidden sm:inline">Înrolare</span>
-              </button>
-            </div>
-            {joinError && <p className="text-red-400 text-xs">{joinError}</p>}
-          </form>
+              {joinError && <p className="text-red-400 text-xs">{joinError}</p>}
+            </form>
+
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 transition-colors shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="font-medium text-sm">Deconectare</span>
+            </button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -289,9 +302,26 @@ export default function StudentDashboard() {
                               </span>
                             )}
                             {material.status === 'completed' && (
-                              <span className="opacity-0 group-hover:opacity-100 hidden sm:inline-flex items-center gap-1 ml-3 text-xs font-medium text-purple-400 transition-opacity duration-300">
-                                <MessageCircle className="w-4 h-4" /> Discută
-                              </span>
+                              <div className="opacity-0 group-hover:opacity-100 hidden sm:flex items-center gap-2 ml-3 transition-opacity duration-300">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/dashboard/elev/test/${material.id}`);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                                >
+                                  <PenTool className="w-3.5 h-3.5" /> Dă un Test
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/dashboard/elev/chat?materialId=${material.id}`);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" /> Discută
+                                </button>
+                              </div>
                             )}
                             <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition-colors ml-2 md:ml-4 shrink-0" />
                           </div>

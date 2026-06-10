@@ -193,6 +193,9 @@ export interface Database {
           score: number | null
           answers: Json
           feedback: Json | null
+          material_id: string | null
+          status: string | null
+          questions: Json | null
           created_at: string
         }
         Insert: {
@@ -203,6 +206,9 @@ export interface Database {
           score?: number | null
           answers: Json
           feedback?: Json | null
+          material_id?: string | null
+          status?: string | null
+          questions?: Json | null
           created_at?: string
         }
         Update: {
@@ -213,6 +219,9 @@ export interface Database {
           score?: number | null
           answers?: Json
           feedback?: Json | null
+          material_id?: string | null
+          status?: string | null
+          questions?: Json | null
           created_at?: string
         }
         Relationships: []
@@ -286,6 +295,8 @@ export interface Database {
           text: string
           raspuns: string
           dificultate: 'usor' | 'mediu' | 'greu'
+          tip: 'grila' | 'scris'
+          optiuni: Json | null
           created_at: string
         }
         Insert: {
@@ -294,6 +305,8 @@ export interface Database {
           text: string
           raspuns: string
           dificultate: 'usor' | 'mediu' | 'greu'
+          tip?: 'grila' | 'scris'
+          optiuni?: Json | null
           created_at?: string
         }
         Update: {
@@ -302,6 +315,8 @@ export interface Database {
           text?: string
           raspuns?: string
           dificultate?: 'usor' | 'mediu' | 'greu'
+          tip?: 'grila' | 'scris'
+          optiuni?: Json | null
           created_at?: string
         }
         Relationships: []

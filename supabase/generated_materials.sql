@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   text          text NOT NULL,
   raspuns       text NOT NULL,
   dificultate   text NOT NULL CHECK (dificultate IN ('usor','mediu','greu')),
+  tip           text NOT NULL DEFAULT 'grila' CHECK (tip IN ('grila','scris')),
+  optiuni       jsonb,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
@@ -129,7 +131,7 @@ CREATE OR REPLACE FUNCTION save_generated_materials(
   p_summary       jsonb,
   p_notes         jsonb,
   p_flashcards    jsonb,    -- array de { termen, definitie }
-  p_quiz          jsonb,    -- array de { text, raspuns, dificultate }
+  p_quiz          jsonb,    -- array de { text, raspuns, dificultate, tip, optiuni }
   p_lesson_plan   jsonb     -- { durata_min, etape[] }
 )
 RETURNS jsonb
@@ -165,11 +167,13 @@ BEGIN
   GET DIAGNOSTICS v_fc_count = ROW_COUNT;
 
   -- ── 4. Inserează quiz_questions ───────────────────────────────
-  INSERT INTO quiz_questions (material_id, text, raspuns, dificultate)
+  INSERT INTO quiz_questions (material_id, text, raspuns, dificultate, tip, optiuni)
   SELECT p_material_id,
          qq->>'text',
          qq->>'raspuns',
-         qq->>'dificultate'
+         qq->>'dificultate',
+         COALESCE(qq->>'tip', 'grila'),
+         qq->'optiuni'
   FROM jsonb_array_elements(p_quiz) AS qq;
 
   GET DIAGNOSTICS v_qq_count = ROW_COUNT;
