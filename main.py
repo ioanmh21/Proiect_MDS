@@ -10,6 +10,7 @@ from agents.evaluator import EvaluatorAgent, TestConfig, Answer
 from agents.generator import GeneratorAgent
 from agents.ingestion import IngestionAgent
 from agents.profile import ProfileAgent, TestResult
+from agents.analist import AnalistAgent
 
 app = FastAPI(title="LearnFlow AI Microservice", description="API care expune toți agenții de Inteligență Artificială")
 
@@ -32,6 +33,7 @@ evaluator_agent = EvaluatorAgent()
 generator_agent = GeneratorAgent()
 ingestion_agent = IngestionAgent()
 profile_agent = ProfileAgent()
+analist_agent = AnalistAgent()
 print("Toti agentii sunt gata!")
 
 # ─────────────────────────────────────────────
@@ -120,15 +122,29 @@ def grade_test(req: GradeTestRequest):
 class IngestionRequest(BaseModel):
     material_id: str
 
-@app.post("/ingestion/process_pdf")
-def ingest_pdf(req: IngestionRequest):
+@app.post("/ingestion/process_material")
+def ingest_material(req: IngestionRequest):
     """
-    Descarcă PDF-ul din Supabase, îi sparge textul în chunks și generează embeddings.
+    Descarcă fișierul (PDF, TXT, Video, Audio) din Supabase, îi extrage/transcrie textul în chunks și generează embeddings.
     """
     try:
-        res = ingestion_agent.process_pdf_material(req.material_id)
+        res = ingestion_agent.process_material(req.material_id)
         return res
     except Exception as e:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+# 6. ANALIST (Progres Elev)
+@app.get("/analist/progress/{user_id}")
+def get_student_progress(user_id: str):
+    """
+    Returnează progresul elevului (scor, teste completate, timp studiu) și recomandări AI.
+    """
+    try:
+        res = analist_agent.get_student_progress(user_id)
+        return res
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Eroare la generarea progresului: {str(e)}")

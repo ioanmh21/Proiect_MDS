@@ -173,16 +173,16 @@ async function runIngestionJob(
       updated_at: new Date().toISOString(),
     }).eq('id', jobId);
 
-    const response = await fetch("http://127.0.0.1:8000/ingestion/process_pdf", {
+    const response = await fetch("http://127.0.0.1:8000/ingestion/process_material", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ material_id: materialId }),
     });
 
     if (!response.ok) {
-       throw new Error(`Eroare de la serverul Python: ${response.status}`);
+      throw new Error(`Eroare de la serverul Python: ${response.status}`);
     }
-    
+
     const data = await response.json();
     const chunkCount = data.chunks_count || 0;
 

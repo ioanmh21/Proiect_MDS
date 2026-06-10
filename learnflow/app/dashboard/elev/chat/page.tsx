@@ -78,9 +78,10 @@ export default function StudentChatPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard/elev')}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10 group"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-400" />
+            <ChevronLeft className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+            <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Înapoi la Dashboard</span>
           </button>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">

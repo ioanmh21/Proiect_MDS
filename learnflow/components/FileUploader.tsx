@@ -3,13 +3,13 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import { createClient } from '@/utils/supabase/client';
-import { 
-  UploadCloud, 
-  FileText, 
-  Video, 
-  File, 
-  X, 
-  CheckCircle2, 
+import {
+  UploadCloud,
+  FileText,
+  Video,
+  File,
+  X,
+  CheckCircle2,
   AlertCircle,
   PlayCircle,
   Link as LinkIcon
@@ -25,7 +25,8 @@ const ACCEPTED_TYPES = {
   'application/pdf': ['.pdf'],
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'video/mp4': ['.mp4']
+  'video/mp4': ['.mp4'],
+  'text/plain': ['.txt']
 };
 
 export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderProps) {
@@ -33,7 +34,7 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  
+
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [youtubeError, setYoutubeError] = useState('');
 
@@ -42,13 +43,13 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
   const onDrop = useCallback((acceptedFiles: File[], fileRejections: FileRejection[]) => {
     setError(null);
     setYoutubeError('');
-    
+
     if (fileRejections.length > 0) {
       const rejection = fileRejections[0];
       if (rejection.errors[0].code === 'file-too-large') {
         setError('Fișierul depășește limita de 500MB.');
       } else if (rejection.errors[0].code === 'file-invalid-type') {
-        setError('Tip de fișier neacceptat. Te rugăm să încarci PDF, PPTX, DOCX sau MP4.');
+        setError('Tip de fișier neacceptat. Te rugăm să încarci PDF, PPTX, DOCX, MP4 sau TXT.');
       } else {
         setError(rejection.errors[0].message);
       }
@@ -159,7 +160,7 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
       setYoutubeError('URL-ul YouTube nu este valid.');
       return;
     }
-    
+
     setYoutubeError('');
     if (onUploadSuccess) {
       onUploadSuccess(youtubeUrl, 'YouTube', 'Material Video YouTube');
@@ -170,7 +171,7 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
   return (
     <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-2xl mx-auto shadow-2xl relative overflow-hidden">
       {onClose && (
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
         >
@@ -182,13 +183,12 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
 
       {/* Drag & Drop Area */}
       {!file && (
-        <div 
-          {...getRootProps()} 
-          className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-4 ${
-            isDragActive 
-              ? 'border-emerald-500 bg-emerald-500/10' 
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-4 ${isDragActive
+              ? 'border-emerald-500 bg-emerald-500/10'
               : 'border-slate-700 bg-black/20 hover:border-emerald-500/50 hover:bg-black/40'
-          }`}
+            }`}
         >
           <input {...getInputProps()} />
           <div className={`p-4 rounded-full ${isDragActive ? 'bg-emerald-500/20' : 'bg-slate-800'}`}>
@@ -199,7 +199,7 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
               {isDragActive ? 'Lasă fișierul aici...' : 'Trage și lasă un fișier aici, sau dă click'}
             </p>
             <p className="text-slate-500 text-sm mt-2">
-              Suportă PDF, PPTX, DOCX, MP4 (Max 500MB)
+              Suportă PDF, PPTX, DOCX, MP4, TXT (Max 500MB)
             </p>
           </div>
         </div>
@@ -219,7 +219,7 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
               </div>
             </div>
             {!isUploading && (
-              <button 
+              <button
                 onClick={() => setFile(null)}
                 className="p-2 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-all"
               >
@@ -236,7 +236,7 @@ export default function FileUploader({ onUploadSuccess, onClose }: FileUploaderP
                 <span className="text-slate-400">{progress}%</span>
               </div>
               <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-                <div 
+                <div
                   className="bg-emerald-500 h-full rounded-full transition-all duration-300 ease-out relative"
                   style={{ width: `${progress}%` }}
                 >

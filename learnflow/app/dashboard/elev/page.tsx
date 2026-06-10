@@ -17,20 +17,6 @@ import {
   Clock3
 } from 'lucide-react';
 
-// Hardcoded Data
-const progressData = {
-  averageScore: 8.5,
-  studyTime: "12h 30m",
-  testsCompleted: 4
-};
-
-const aiRecommendation = {
-  title: "Test de Recapitulare: Matematică",
-  description: "Pe baza activității tale recente, am pregătit un test personalizat care să te ajute să consolidezi cunoștințele la Algebră.",
-  estimatedTime: "20m",
-  difficulty: "Mediu"
-};
-
 interface Material {
   id: string;
   title: string;
@@ -43,10 +29,47 @@ export default function StudentDashboard() {
   const { userName, className, isLoading: isContextLoading } = useElev();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [isMaterialsLoading, setIsMaterialsLoading] = useState(true);
+  
+  const [progressData, setProgressData] = useState({
+    averageScore: 0,
+    studyTime: "0m",
+    testsCompleted: 0
+  });
+  const [aiRecommendation, setAiRecommendation] = useState({
+    title: "Se încarcă...",
+    description: "Analizăm progresul tău pentru a genera recomandări personalizate...",
+    estimatedTime: "-",
+    difficulty: "-"
+  });
+  const [isProgressLoading, setIsProgressLoading] = useState(true);
+  
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
+    async function fetchProgress() {
+      try {
+        const response = await fetch('/api/progress');
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            setProgressData({
+              averageScore: data.averageScore || 0,
+              studyTime: data.studyTime || "0m",
+              testsCompleted: data.testsCompleted || 0
+            });
+            if (data.aiRecommendation) {
+              setAiRecommendation(data.aiRecommendation);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error);
+      } finally {
+        setIsProgressLoading(false);
+      }
+    }
+
     async function fetchMaterials() {
       if (!className) return;
       try {
@@ -70,8 +93,10 @@ export default function StudentDashboard() {
     if (!isContextLoading) {
       if (className) {
         fetchMaterials();
+        fetchProgress();
       } else {
         setIsMaterialsLoading(false);
+        setIsProgressLoading(false);
       }
     }
   }, [className, isContextLoading, supabase]);
@@ -115,7 +140,7 @@ export default function StudentDashboard() {
                   { label: "Teste Completate", value: progressData.testsCompleted, icon: BookOpen, color: "text-emerald-400" }
                 ].map((stat, i) => (
                   <div key={i} className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden group hover:bg-white/[0.05] transition-all duration-300">
-                    {isLoading ? (
+                    {isProgressLoading ? (
                       <div className="animate-pulse space-y-3">
                         <div className="h-10 w-10 bg-white/10 rounded-full" />
                         <div className="h-8 w-20 bg-white/10 rounded-md" />
@@ -238,7 +263,7 @@ export default function StudentDashboard() {
               <div className="bg-gradient-to-br from-purple-900/40 to-fuchsia-900/20 border border-purple-500/30 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/20 rounded-full blur-[50px]" />
                 
-                {isLoading ? (
+                {isProgressLoading ? (
                   <div className="animate-pulse space-y-4">
                     <div className="h-6 w-1/4 bg-white/10 rounded-md mb-2" />
                     <div className="h-6 w-3/4 bg-white/10 rounded-md" />

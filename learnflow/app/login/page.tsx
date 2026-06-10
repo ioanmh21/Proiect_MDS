@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +13,10 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    // Optional: could auto-load last used, but we'll use buttons instead
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +112,31 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleLogin} className="space-y-5">
+          {/* Dev Quick Actions */}
+          <div className="flex justify-between text-xs font-semibold text-slate-500 mb-2 px-1">
+            <div className="flex gap-3">
+              <button type="button" onClick={() => {
+                localStorage.setItem("dev_teacher_email", email);
+                localStorage.setItem("dev_teacher_password", password);
+                alert("Date profesor salvate!");
+              }} className="hover:text-indigo-400 transition-colors">Save ca Prof</button>
+              <button type="button" onClick={() => {
+                setEmail(localStorage.getItem("dev_teacher_email") || "");
+                setPassword(localStorage.getItem("dev_teacher_password") || "");
+              }} className="hover:text-indigo-400 transition-colors">Load Prof</button>
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => {
+                localStorage.setItem("dev_student_email", email);
+                localStorage.setItem("dev_student_password", password);
+                alert("Date elev salvate!");
+              }} className="hover:text-purple-400 transition-colors">Save ca Elev</button>
+              <button type="button" onClick={() => {
+                setEmail(localStorage.getItem("dev_student_email") || "");
+                setPassword(localStorage.getItem("dev_student_password") || "");
+              }} className="hover:text-purple-400 transition-colors">Load Elev</button>
+            </div>
+          </div>
           <div className="space-y-4">
             {/* Email Field */}
             <div className="space-y-1.5">
