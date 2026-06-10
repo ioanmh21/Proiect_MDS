@@ -4,17 +4,21 @@ import React, { useEffect, useState } from 'react';
 import { useElev } from '@/app/context/ElevContext';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import StudentProgressDashboard from '@/components/StudentProgressDashboard';
+import AIRecommendationCard from '@/components/AIRecommendationCard';
 import { 
   BookOpen, 
   Clock, 
-  Award, 
   ChevronRight, 
   BrainCircuit, 
   MessageCircle, 
   PlayCircle,
   FileText,
   CheckCircle,
-  Clock3
+  Clock3,
+  Plus,
+  Loader2,
+  Key
 } from 'lucide-react';
 
 interface Material {
@@ -26,7 +30,7 @@ interface Material {
 }
 
 export default function StudentDashboard() {
-  const { userName, className, isLoading: isContextLoading } = useElev();
+  const { userName, classes, isLoading: isContextLoading, refreshProfile } = useElev();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [isMaterialsLoading, setIsMaterialsLoading] = useState(true);
   
@@ -42,6 +46,11 @@ export default function StudentDashboard() {
     difficulty: "-"
   });
   const [isProgressLoading, setIsProgressLoading] = useState(true);
+
+  // Join Class State
+  const [joinCode, setJoinCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
   
   const supabase = createClient();
   const router = useRouter();
@@ -71,14 +80,20 @@ export default function StudentDashboard() {
     }
 
     async function fetchMaterials() {
-      if (!className) return;
+      if (classes.length === 0) {
+        setMaterials([]);
+        setIsMaterialsLoading(false);
+        return;
+      }
+
       try {
+        const classIds = classes.map(c => c.id);
         const { data, error } = await supabase
           .from('materials')
           .select('id, title, type, status, created_at')
-          .eq('class_name', className)
+          .in('class_id', classIds)
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(10);
 
         if (data) {
           setMaterials(data as Material[]);
@@ -91,18 +106,40 @@ export default function StudentDashboard() {
     }
 
     if (!isContextLoading) {
-      if (className) {
-        fetchMaterials();
-        fetchProgress();
-      } else {
-        setIsMaterialsLoading(false);
-        setIsProgressLoading(false);
-      }
+      fetchProgress();
+      fetchMaterials();
     }
-  }, [className, isContextLoading, supabase]);
+  }, [classes, isContextLoading, supabase]);
+
+  const handleJoinClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCode || joinCode.trim().length === 0) return;
+
+    setIsJoining(true);
+    setJoinError('');
+
+    try {
+      const res = await fetch('/api/classes/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: joinCode })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Eroare la înrolare');
+      }
+
+      setJoinCode('');
+      await refreshProfile(); // Refresh context to get new classes
+    } catch (err: any) {
+      setJoinError(err.message);
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const isLoading = isContextLoading || isMaterialsLoading;
-
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 p-6 md:p-8 font-sans selection:bg-purple-500/30">
@@ -112,13 +149,40 @@ export default function StudentDashboard() {
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        <header className="mb-10 flex justify-between items-end">
+        <header className="mb-10 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-2">
               Salut, {userName}! 👋
             </h1>
             <p className="text-slate-400">Bine ai revenit. Iată progresul tău de săptămâna aceasta.</p>
           </div>
+
+          {/* Join Class Quick Action */}
+          <form onSubmit={handleJoinClass} className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Key className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  placeholder="Cod Clasă (ex: A4F9KL)"
+                  className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 w-48 transition-all"
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={isJoining || !joinCode}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
+              >
+                {isJoining ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                <span className="hidden sm:inline">Înrolare</span>
+              </button>
+            </div>
+            {joinError && <p className="text-red-400 text-xs">{joinError}</p>}
+          </form>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -126,48 +190,33 @@ export default function StudentDashboard() {
           {/* Left Column: Progress & Materials */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Weekly Progress */}
+            {/* Active Classes Badges */}
+            {classes.length > 0 && (
+               <div className="flex flex-wrap gap-2 mb-2">
+                 {classes.map(cls => (
+                   <span key={cls.id} className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-medium text-slate-300">
+                     {cls.name}
+                   </span>
+                 ))}
+               </div>
+            )}
+
+            {/* Weekly Progress Dashboard */}
             <section>
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-white">
-                <Award className="w-5 h-5 text-purple-400" />
-                Progres Săptămânal
-              </h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                  { label: "Scor Mediu", value: progressData.averageScore, icon: Award, color: "text-amber-400" },
-                  { label: "Timp Studiu", value: progressData.studyTime, icon: Clock, color: "text-blue-400" },
-                  { label: "Teste Completate", value: progressData.testsCompleted, icon: BookOpen, color: "text-emerald-400" }
-                ].map((stat, i) => (
-                  <div key={i} className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden group hover:bg-white/[0.05] transition-all duration-300">
-                    {isProgressLoading ? (
-                      <div className="animate-pulse space-y-3">
-                        <div className="h-10 w-10 bg-white/10 rounded-full" />
-                        <div className="h-8 w-20 bg-white/10 rounded-md" />
-                        <div className="h-4 w-24 bg-white/10 rounded-md" />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                          <stat.icon className={`w-12 h-12 ${stat.color}`} />
-                        </div>
-                        <div className={`w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5`}>
-                          <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                        </div>
-                        <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                        <div className="text-sm text-slate-400">{stat.label}</div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <StudentProgressDashboard 
+                progressSummary={{
+                  averageScore: progressData.averageScore,
+                  totalStudyTime: progressData.studyTime,
+                  materialsCount: progressData.testsCompleted
+                }}
+              />
             </section>
 
             {/* Recent Materials */}
             <section>
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-white">
                 <BookOpen className="w-5 h-5 text-blue-400" />
-                Materiale Recente
+                Materiale Recente din Clasele Tale
               </h2>
               
               <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
@@ -184,11 +233,17 @@ export default function StudentDashboard() {
                       </div>
                     ))}
                   </div>
+                ) : classes.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400">
+                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50 text-slate-500" />
+                    <p className="mb-2">Nu ești înscris în nicio clasă încă.</p>
+                    <p className="text-sm">Folosește codul primit de la profesor pentru a te înrola și a vedea materialele.</p>
+                  </div>
                 ) : (
                   <div className="divide-y divide-white/10">
                     {materials.length === 0 ? (
                       <div className="p-8 text-center text-slate-400">
-                        Nu ai materiale recente pentru clasa ta.
+                        Niciun material adăugat recent în clasele tale.
                       </div>
                     ) : (
                       materials.map((material) => (
@@ -260,11 +315,8 @@ export default function StudentDashboard() {
                 Recomandat de AI
               </h2>
               
-              <div className="bg-gradient-to-br from-purple-900/40 to-fuchsia-900/20 border border-purple-500/30 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/20 rounded-full blur-[50px]" />
-                
-                {isProgressLoading ? (
-                  <div className="animate-pulse space-y-4">
+              {isProgressLoading ? (
+                  <div className="animate-pulse space-y-4 bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6">
                     <div className="h-6 w-1/4 bg-white/10 rounded-md mb-2" />
                     <div className="h-6 w-3/4 bg-white/10 rounded-md" />
                     <div className="h-20 w-full bg-white/10 rounded-md" />
@@ -274,37 +326,18 @@ export default function StudentDashboard() {
                     </div>
                     <div className="h-12 w-full bg-white/10 rounded-xl mt-4" />
                   </div>
-                ) : (
-                  <div className="relative z-10">
-                    <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-fuchsia-500/20 text-fuchsia-300 text-xs font-medium mb-4 border border-fuchsia-500/20">
-                      Potrivire 98%
-                    </div>
-                    
-                    <h3 className="text-lg font-bold text-white mb-2 leading-tight">
-                      {aiRecommendation.title}
-                    </h3>
-                    
-                    <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                      {aiRecommendation.description}
-                    </p>
-                    
-                    <div className="flex gap-3 mb-6">
-                      <div className="bg-black/20 rounded-lg px-3 py-2 border border-white/5 flex-1 text-center">
-                        <div className="text-xs text-slate-400 mb-1">Timp Estimat</div>
-                        <div className="text-sm font-medium text-white">{aiRecommendation.estimatedTime}</div>
-                      </div>
-                      <div className="bg-black/20 rounded-lg px-3 py-2 border border-white/5 flex-1 text-center">
-                        <div className="text-xs text-slate-400 mb-1">Dificultate</div>
-                        <div className="text-sm font-medium text-white">{aiRecommendation.difficulty}</div>
-                      </div>
-                    </div>
-                    
-                    <button className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-medium py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] flex items-center justify-center gap-2 group">
-                      Începe Testul <PlayCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    </button>
-                  </div>
-                )}
-              </div>
+              ) : (
+                <AIRecommendationCard 
+                  recommendation={{
+                    title: aiRecommendation.title,
+                    type: 'video',
+                    reason: aiRecommendation.description,
+                    difficulty: (aiRecommendation.difficulty as any) || 'Mediu',
+                    estimatedTime: aiRecommendation.estimatedTime || '15m'
+                  }}
+                  onStart={() => console.log('Starting recommendation...')}
+                />
+              )}
             </section>
 
             {/* Tutor Chat Shortcut */}

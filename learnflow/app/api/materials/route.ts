@@ -24,7 +24,7 @@ export async function GET() {
 
   const { data: materials, error } = await supabase
     .from('materials')
-    .select('id, title, description, type, file_url, status, class_name, subject, grade, chapter, created_at')
+    .select('id, title, description, type, file_url, status, class_id, created_at')
     .eq('teacher_id', user.id)
     .eq('is_archived', false)
     .order('created_at', { ascending: false });
@@ -62,9 +62,7 @@ export async function POST(request: NextRequest) {
 
   let body: {
     title: string;
-    subject?: string;
-    grade?: number;
-    chapter?: string;
+    classId: string;
     description?: string;
     fileUrl?: string;
   };
@@ -89,13 +87,10 @@ export async function POST(request: NextRequest) {
     teacher_id: user.id,
     title: body.title.trim(),
     description: body.description?.trim() || null,
-    subject: body.subject || null,
-    grade: body.grade || null,
-    chapter: body.chapter?.trim() || null,
+    class_id: body.classId,
     file_url: body.fileUrl || '',
     type: 'pdf' as const,
     status: 'pending' as const,
-    class_name: body.grade ? body.grade.toString() : null,
   };
 
   console.log('[Materials API] Încercăm să inserăm:', insertPayload);
@@ -127,7 +122,7 @@ export async function POST(request: NextRequest) {
   const { data: material, error } = await supabaseForInsert
     .from('materials')
     .insert(insertPayload)
-    .select('id, title, description, type, file_url, status, class_name, subject, grade, chapter, created_at')
+    .select('id, title, description, type, file_url, status, class_id, chapter, created_at')
     .single();
 
   if (error) {
@@ -164,9 +159,7 @@ export async function PATCH(request: NextRequest) {
   let body: {
     id: string;
     title?: string;
-    subject?: string;
-    grade?: number;
-    chapter?: string;
+    classId?: string;
     description?: string;
   };
 
@@ -189,12 +182,7 @@ export async function PATCH(request: NextRequest) {
   // Construim obiectul de update doar cu câmpurile furnizate
   const updateData: Record<string, unknown> = {};
   if (body.title !== undefined) updateData.title = body.title.trim();
-  if (body.subject !== undefined) updateData.subject = body.subject || null;
-  if (body.grade !== undefined) {
-    updateData.grade = body.grade || null;
-    updateData.class_name = body.grade ? body.grade.toString() : null;
-  }
-  if (body.chapter !== undefined) updateData.chapter = body.chapter?.trim() || null;
+  if (body.classId !== undefined) updateData.class_id = body.classId;
   if (body.description !== undefined) updateData.description = body.description?.trim() || null;
 
   if (Object.keys(updateData).length === 0) {
@@ -230,7 +218,7 @@ export async function PATCH(request: NextRequest) {
     .update(updateData)
     .eq('id', body.id)
     .eq('teacher_id', user.id) // verificare ownership
-    .select('id, title, description, type, file_url, status, class_name, subject, grade, chapter, created_at')
+    .select('id, title, description, type, file_url, status, class_id, created_at')
     .single();
 
   if (error) {

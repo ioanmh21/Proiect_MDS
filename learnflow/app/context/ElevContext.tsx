@@ -1,52 +1,71 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
+export interface ClassData {
+  id: string;
+  name: string;
+}
+
 interface ElevContextType {
   userName: string;
-  className: string | null;
+  classes: ClassData[];
   isLoading: boolean;
   handleSignOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const ElevContext = createContext<ElevContextType | undefined>(undefined);
 
 export function ElevProvider({ children }: { children: React.ReactNode }) {
   const [userName, setUserName] = useState("Elev");
-  const [className, setClassName] = useState<string | null>(null);
+  const [classes, setClasses] = useState<ClassData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("first_name, class_name")
-            .eq("id", user.id)
-            .single();
-          
-          if (profile?.first_name) {
-            setUserName(profile.first_name);
-          }
-          if (profile?.class_name) {
-            setClassName(profile.class_name);
-          }
+  const fetchProfile = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // 1. Aducem numele din profiles
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.first_name) {
+          setUserName(profile.first_name);
         }
-      } catch (error) {
-        console.error("Error fetching elev profile:", error);
-      } finally {
-        setIsLoading(false);
+
+        // 2. Aducem clasele la care e înscris
+        const { data: classLinks } = await supabase
+          .from("student_classes")
+          .select("classes(id, name)")
+          .eq("student_id", user.id);
+        
+        if (classLinks) {
+          // Supabase returnează un array de { classes: {id, name} }
+          const userClasses = classLinks
+            .map((link: any) => link.classes)
+            .filter(Boolean) as ClassData[];
+          setClasses(userClasses);
+        }
       }
+    } catch (error) {
+      console.error("Error fetching elev profile:", error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    fetchProfile();
   }, [supabase]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -55,9 +74,10 @@ export function ElevProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     userName,
-    className,
+    classes,
     isLoading,
     handleSignOut,
+    refreshProfile: fetchProfile,
   };
 
   return (

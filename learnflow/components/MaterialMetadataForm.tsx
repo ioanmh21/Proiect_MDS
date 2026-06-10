@@ -8,27 +8,16 @@ import { CheckCircle2, Loader2, AlertCircle, BookOpen } from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(3, { message: 'Titlul trebuie să aibă cel puțin 3 caractere.' }),
-  subject: z.enum([
-    'Matematică', 'Fizică', 'Chimie', 'Biologie', 'Informatică',
-    'Istorie', 'Geografie', 'Română', 'Engleză'
-  ], { error: 'Te rugăm să selectezi o materie.' }),
-  grade: z.string().refine((val) => {
-    const num = parseInt(val, 10);
-    return num >= 1 && num <= 12;
-  }, { message: 'Clasa trebuie să fie între 1 și 12.' }),
-  chapter: z.string().min(2, { message: 'Capitolul trebuie să aibă cel puțin 2 caractere.' }),
+  classId: z.string().min(1, { message: 'Te rugăm să selectezi o clasă.' }),
   description: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-/** Datele unui material existent, folosite pentru pre-popularea formularului în edit mode */
 export interface MaterialInitialData {
   id: string;
   title: string;
-  subject: string | null;
-  grade: number | null;
-  chapter: string | null;
+  class_id: string | null;
   description: string | null;
 }
 
@@ -39,7 +28,6 @@ export default function MaterialMetadataForm({
 }: { 
   fileUrl?: string;
   onSuccess?: () => void;
-  /** Dacă este furnizat, formularul intră în edit mode și pre-populează câmpurile */
   initialData?: MaterialInitialData;
 }) {
   const isEditMode = !!initialData;
@@ -47,6 +35,27 @@ export default function MaterialMetadataForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  const [classes, setClasses] = useState<{id: string, name: string}[]>([]);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
+
+  // Fetch classes from API
+  useEffect(() => {
+    async function fetchClasses() {
+      try {
+        const response = await fetch('/api/classes');
+        if (response.ok) {
+          const data = await response.json();
+          setClasses(data.classes || []);
+        }
+      } catch (err) {
+        console.error('Eroare la obținerea claselor:', err);
+      } finally {
+        setIsLoadingClasses(false);
+      }
+    }
+    fetchClasses();
+  }, []);
 
   const {
     register,
@@ -58,22 +67,17 @@ export default function MaterialMetadataForm({
     defaultValues: initialData
       ? {
           title: initialData.title,
-          subject: (initialData.subject as FormData['subject']) || undefined,
-          grade: initialData.grade?.toString() || '',
-          chapter: initialData.chapter || '',
+          classId: initialData.class_id || '',
           description: initialData.description || '',
         }
       : undefined,
   });
 
-  // Resetăm formularul când initialData se schimbă (ex: click pe alt material)
   useEffect(() => {
     if (initialData) {
       reset({
         title: initialData.title,
-        subject: (initialData.subject as FormData['subject']) || undefined,
-        grade: initialData.grade?.toString() || '',
-        chapter: initialData.chapter || '',
+        classId: initialData.class_id || '',
         description: initialData.description || '',
       });
     }
@@ -86,16 +90,14 @@ export default function MaterialMetadataForm({
 
     try {
       if (isEditMode) {
-        // ── EDIT MODE: PATCH /api/materials ──
+        // PATCH /api/materials
         const response = await fetch('/api/materials', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: initialData.id,
             title: data.title,
-            subject: data.subject,
-            grade: parseInt(data.grade, 10),
-            chapter: data.chapter,
+            classId: data.classId,
             description: data.description || null,
           }),
         });
@@ -105,15 +107,13 @@ export default function MaterialMetadataForm({
           throw new Error(err.error || 'Eroare la actualizarea materialului.');
         }
       } else {
-        // ── CREATE MODE: POST /api/materials ──
+        // POST /api/materials
         const response = await fetch('/api/materials', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: data.title,
-            subject: data.subject,
-            grade: parseInt(data.grade, 10),
-            chapter: data.chapter,
+            classId: data.classId,
             description: data.description || null,
             fileUrl: fileUrl || '',
           }),
@@ -126,7 +126,7 @@ export default function MaterialMetadataForm({
 
         const { materialId } = await response.json();
 
-        // Trigger the ingestion background job
+        // Trigger the ingestion
         const ingestResponse = await fetch('/api/materials/ingest', {
           method: 'POST',
           headers: {
@@ -164,7 +164,7 @@ export default function MaterialMetadataForm({
         <p className="text-emerald-200/80 text-center text-sm">
           {isEditMode
             ? 'Modificările au fost salvate.'
-            : 'Detaliile au fost salvate și materialul a fost adăugat în sistem.'}
+            : 'Detaliile au fost salvate și materialul a fost adăugat în clasa selectată.'}
         </p>
       </div>
     );
@@ -183,7 +183,7 @@ export default function MaterialMetadataForm({
           <p className="text-sm text-slate-400">
             {isEditMode
               ? 'Modifică informațiile materialului.'
-              : 'Completează informațiile pentru a salva materialul.'}
+              : 'Asociază materialul cu o clasă.'}
           </p>
         </div>
       </div>
@@ -199,7 +199,7 @@ export default function MaterialMetadataForm({
             className={`w-full bg-black/20 border rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none text-white placeholder-slate-500 ${
               errors.title ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500/50 focus:bg-black/40'
             }`}
-            placeholder="Ex: Rezolvare ecuații de gradul 2"
+            placeholder="Ex: Funcții Exponențiale"
           />
           {errors.title && (
             <p className="mt-1.5 text-sm text-red-400 flex items-center gap-1">
@@ -208,76 +208,33 @@ export default function MaterialMetadataForm({
           )}
         </div>
 
-        {/* Subject & Grade */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Materie
-            </label>
-            <select
-              {...register('subject')}
-              defaultValue=""
-              className={`w-full bg-black/20 border rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none text-white ${
-                errors.subject ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500/50 focus:bg-black/40'
-              }`}
-            >
-              <option value="" disabled>Selectează materia...</option>
-              <option value="Matematică">Matematică</option>
-              <option value="Fizică">Fizică</option>
-              <option value="Chimie">Chimie</option>
-              <option value="Biologie">Biologie</option>
-              <option value="Informatică">Informatică</option>
-              <option value="Istorie">Istorie</option>
-              <option value="Geografie">Geografie</option>
-              <option value="Română">Română</option>
-              <option value="Engleză">Engleză</option>
-            </select>
-            {errors.subject && (
-              <p className="mt-1.5 text-sm text-red-400 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" /> {errors.subject.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Clasa
-            </label>
-            <select
-              {...register('grade')}
-              defaultValue=""
-              className={`w-full bg-black/20 border rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none text-white ${
-                errors.grade ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500/50 focus:bg-black/40'
-              }`}
-            >
-              <option value="" disabled>Selectează clasa...</option>
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>Clasa a {i + 1}-a</option>
-              ))}
-            </select>
-            {errors.grade && (
-              <p className="mt-1.5 text-sm text-red-400 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" /> {errors.grade.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Chapter */}
+        {/* Class Selection */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-1.5">
-            Capitol / Unitate de învățare
+            Clasa
           </label>
-          <input
-            {...register('chapter')}
-            className={`w-full bg-black/20 border rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none text-white placeholder-slate-500 ${
-              errors.chapter ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500/50 focus:bg-black/40'
+          <select
+            {...register('classId')}
+            defaultValue=""
+            className={`w-full bg-black/20 border rounded-xl px-4 py-2.5 text-sm transition-all focus:outline-none text-white ${
+              errors.classId ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500/50 focus:bg-black/40'
             }`}
-            placeholder="Ex: Algebră - Polinoame"
-          />
-          {errors.chapter && (
+          >
+            <option value="" disabled>
+              {isLoadingClasses ? 'Se încarcă clasele...' : 'Selectează clasa...'}
+            </option>
+            {classes.map(cls => (
+              <option key={cls.id} value={cls.id}>{cls.name}</option>
+            ))}
+          </select>
+          {errors.classId && (
             <p className="mt-1.5 text-sm text-red-400 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" /> {errors.chapter.message}
+              <AlertCircle className="w-4 h-4" /> {errors.classId.message}
+            </p>
+          )}
+          {classes.length === 0 && !isLoadingClasses && (
+            <p className="mt-1.5 text-sm text-amber-400 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" /> Nu ai nicio clasă creată. Te rugăm să creezi o clasă mai întâi.
             </p>
           )}
         </div>
@@ -306,7 +263,7 @@ export default function MaterialMetadataForm({
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || classes.length === 0}
           className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-semibold transition-all shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
