@@ -14,7 +14,8 @@ import {
   PlayCircle,
   FileText,
   CheckCircle,
-  Clock3
+  Clock3,
+  LogOut
 } from 'lucide-react';
 
 interface Material {
@@ -26,7 +27,7 @@ interface Material {
 }
 
 export default function StudentDashboard() {
-  const { userName, className, isLoading: isContextLoading } = useElev();
+  const { userName, className, isLoading: isContextLoading, handleSignOut } = useElev();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [isMaterialsLoading, setIsMaterialsLoading] = useState(true);
   
@@ -112,13 +113,21 @@ export default function StudentDashboard() {
       <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        <header className="mb-10 flex justify-between items-end">
+        <header className="mb-10 flex flex-col sm:flex-row justify-between sm:items-end gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 mb-2">
               Salut, {userName}! 👋
             </h1>
             <p className="text-slate-400">Bine ai revenit. Iată progresul tău de săptămâna aceasta.</p>
           </div>
+          
+          <button 
+            onClick={handleSignOut}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 transition-colors shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="font-medium text-sm">Deconectare</span>
+          </button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

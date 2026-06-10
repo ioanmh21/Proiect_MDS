@@ -90,9 +90,16 @@ class AnalistAgent:
 
         # 2. Fetch study sessions (fallback la 0 dacă lipsește tabela/coloana)
         try:
-            sessions_res = self.supabase.table("study_sessions").select("duration_minutes").eq("user_id", user_id).execute()
+            sessions_res = self.supabase.table("study_sessions").select("*").eq("user_id", user_id).execute()
             if sessions_res.data:
-                total_minutes = sum([int(s.get("duration_minutes", 0)) for s in sessions_res.data if s.get("duration_minutes")])
+                # Daca exista vreo coloana de durata, o folosim, altfel estimam 30m / sesiune
+                for s in sessions_res.data:
+                    if "duration_minutes" in s and s["duration_minutes"] is not None:
+                        total_minutes += int(s["duration_minutes"])
+                    elif "duration" in s and s["duration"] is not None:
+                        total_minutes += int(s["duration"])
+                    else:
+                        total_minutes += 30 # estimare default
         except Exception as e:
             print(f"[AnalistAgent] Error fetching study sessions (might not exist): {e}")
 
