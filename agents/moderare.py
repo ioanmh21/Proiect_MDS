@@ -4,7 +4,7 @@ Agent 02 - Moderare
 Rolul principal: Verifică dacă mesajele elevului sau răspunsurile AI sunt adecvate.
 """
 
-from langchain_google_vertexai import ChatVertexAI
+from langchain_google_genai import ChatGoogleGenerativeAI as ChatVertexAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from pydantic import BaseModel
@@ -39,7 +39,7 @@ class ModerareOutput(BaseModel):
 class ModerareAgent:
     def __init__(self):
         self.llm = ChatVertexAI(
-            model_name=MODEL_FAST,
+            model=MODEL_FAST,
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
             temperature=0.0,  # Vrem consistență maximă pentru moderare

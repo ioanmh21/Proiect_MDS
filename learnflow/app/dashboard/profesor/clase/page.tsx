@@ -164,6 +164,15 @@ export default function GestioneazaClase() {
                         {copiedCode === cls.code ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
+
+                    <div className="mt-4">
+                      <a 
+                        href={`/dashboard/profesor/clase/${cls.id}`} 
+                        className="text-sm font-medium text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                      >
+                        Vezi elevii și detaliile <Users className="w-4 h-4" />
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>

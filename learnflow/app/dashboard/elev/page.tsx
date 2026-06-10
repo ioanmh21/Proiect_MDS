@@ -20,7 +20,8 @@ import {
   Loader2,
   Key,
   LogOut,
-  PenTool
+  PenTool,
+  User
 } from 'lucide-react';
 
 interface Material {
@@ -33,8 +34,6 @@ interface Material {
 
 export default function StudentDashboard() {
   const { userName, classes, isLoading: isContextLoading, refreshProfile, handleSignOut } = useElev();
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [isMaterialsLoading, setIsMaterialsLoading] = useState(true);
   
   const [progressData, setProgressData] = useState({
     averageScore: 0,
@@ -54,7 +53,6 @@ export default function StudentDashboard() {
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
   
-  const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
@@ -81,38 +79,10 @@ export default function StudentDashboard() {
       }
     }
 
-    async function fetchMaterials() {
-      if (classes.length === 0) {
-        setMaterials([]);
-        setIsMaterialsLoading(false);
-        return;
-      }
-
-      try {
-        const classIds = classes.map(c => c.id);
-        const { data, error } = await supabase
-          .from('materials')
-          .select('id, title, type, status, created_at')
-          .in('class_id', classIds)
-          .eq('is_archived', false)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (data) {
-          setMaterials(data as Material[]);
-        }
-      } catch (error) {
-        console.error('Error fetching materials:', error);
-      } finally {
-        setIsMaterialsLoading(false);
-      }
-    }
-
     if (!isContextLoading) {
       fetchProgress();
-      fetchMaterials();
     }
-  }, [classes, isContextLoading, supabase]);
+  }, [isContextLoading]);
 
   const handleJoinClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +112,7 @@ export default function StudentDashboard() {
     }
   };
 
-  const isLoading = isContextLoading || isMaterialsLoading;
+  const isLoading = isContextLoading;
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 p-6 md:p-8 font-sans selection:bg-purple-500/30">
@@ -188,13 +158,23 @@ export default function StudentDashboard() {
               {joinError && <p className="text-red-400 text-xs">{joinError}</p>}
             </form>
 
-            <button 
-              onClick={handleSignOut}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 transition-colors shrink-0"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="font-medium text-sm">Deconectare</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => router.push('/dashboard/elev/profil')}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 border border-blue-500/20 transition-colors shrink-0"
+              >
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline font-medium text-sm">Profil și Statistici</span>
+              </button>
+
+              <button 
+                onClick={handleSignOut}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border border-red-500/20 transition-colors shrink-0"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline font-medium text-sm">Deconectare</span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -203,134 +183,48 @@ export default function StudentDashboard() {
           {/* Left Column: Progress & Materials */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Active Classes Badges */}
-            {classes.length > 0 && (
-               <div className="flex flex-wrap gap-2 mb-2">
-                 {classes.map(cls => (
-                   <span key={cls.id} className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-medium text-slate-300">
-                     {cls.name}
-                   </span>
-                 ))}
-               </div>
-            )}
-
-            {/* Weekly Progress Dashboard */}
-            <section>
-              <StudentProgressDashboard 
-                progressSummary={{
-                  averageScore: progressData.averageScore,
-                  totalStudyTime: progressData.studyTime,
-                  materialsCount: progressData.testsCompleted
-                }}
-              />
-            </section>
-
-            {/* Recent Materials */}
+            {/* Active Classes */}
             <section>
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-white">
                 <BookOpen className="w-5 h-5 text-blue-400" />
-                Materiale Recente din Clasele Tale
+                Clasele Mele
               </h2>
               
-              <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
-                {isLoading ? (
-                  <div className="p-4 space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="animate-pulse flex items-center gap-4 p-4">
-                        <div className="h-12 w-12 bg-white/10 rounded-xl shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <div className="h-5 w-1/3 bg-white/10 rounded-md" />
-                          <div className="h-4 w-1/4 bg-white/10 rounded-md" />
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[1, 2].map(i => (
+                    <div key={i} className="animate-pulse bg-white/5 h-32 rounded-2xl border border-white/10" />
+                  ))}
+                </div>
+              ) : classes.length === 0 ? (
+                <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-12 text-center text-slate-400">
+                  <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50 text-slate-500" />
+                  <p className="mb-2">Nu ești înscris în nicio clasă încă.</p>
+                  <p className="text-sm">Folosește codul primit de la profesor pentru a te înrola.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {classes.map((cls) => (
+                    <div 
+                      key={cls.id} 
+                      onClick={() => router.push(`/dashboard/elev/clasa/${cls.id}`)}
+                      className="group cursor-pointer bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 hover:border-purple-500/30 backdrop-blur-md rounded-2xl p-6 transition-all hover:bg-white/[0.08]"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.2)] group-hover:scale-110 transition-transform">
+                          <BookOpen className="w-6 h-6" />
                         </div>
-                        <div className="h-8 w-20 bg-white/10 rounded-full shrink-0" />
+                        <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-purple-400 transition-colors" />
                       </div>
-                    ))}
-                  </div>
-                ) : classes.length === 0 ? (
-                  <div className="p-12 text-center text-slate-400">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50 text-slate-500" />
-                    <p className="mb-2">Nu ești înscris în nicio clasă încă.</p>
-                    <p className="text-sm">Folosește codul primit de la profesor pentru a te înrola și a vedea materialele.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-white/10">
-                    {materials.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400">
-                        Niciun material adăugat recent în clasele tale.
-                      </div>
-                    ) : (
-                      materials.map((material) => (
-                        <div 
-                          key={material.id} 
-                          onClick={() => material.status === 'completed' ? router.push(`/dashboard/elev/chat?materialId=${material.id}`) : null}
-                          className={`p-4 md:p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group ${material.status === 'completed' ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
-                        >
-                          <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20 group-hover:scale-105 transition-transform">
-                            {material.type === 'video' ? <PlayCircle className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-slate-200 truncate">{material.title}</h3>
-                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {new Date(material.created_at).toLocaleDateString()}
-                              </span>
-                              <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-                              <span className="capitalize">{material.type}</span>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0 flex items-center">
-                            {material.status === 'completed' && (
-                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                <CheckCircle className="w-3 h-3" /> Finalizat
-                              </span>
-                            )}
-                            {material.status === 'processing' && (
-                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                <Clock3 className="w-3 h-3" /> Se procesează
-                              </span>
-                            )}
-                            {material.status === 'pending' && (
-                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                                În așteptare
-                              </span>
-                            )}
-                            {material.status === 'error' && (
-                              <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                                Eroare
-                              </span>
-                            )}
-                            {material.status === 'completed' && (
-                              <div className="opacity-0 group-hover:opacity-100 hidden sm:flex items-center gap-2 ml-3 transition-opacity duration-300">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/dashboard/elev/test/${material.id}`);
-                                  }}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-                                >
-                                  <PenTool className="w-3.5 h-3.5" /> Dă un Test
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/dashboard/elev/chat?materialId=${material.id}`);
-                                  }}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" /> Discută
-                                </button>
-                              </div>
-                            )}
-                            <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition-colors ml-2 md:ml-4 shrink-0" />
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
+                      
+                      <h3 className="font-semibold text-lg text-slate-200 group-hover:text-white transition-colors truncate">
+                        {cls.name}
+                      </h3>
+                      <p className="text-sm text-slate-400 mt-1">Apasă pentru a vedea materialele și colegii</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
             
           </div>

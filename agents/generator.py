@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import GCP_PROJECT_ID, GCP_LOCATION, MODEL_FAST, SUPABASE_URL, SUPABASE_KEY
-from langchain_google_vertexai import ChatVertexAI
+from langchain_google_genai import ChatGoogleGenerativeAI as ChatVertexAI
 from langchain_core.messages import HumanMessage
 from supabase import create_client, Client
 
@@ -114,7 +114,7 @@ class GeneratorAgent:
     def __init__(self):
         # Folosim Gemini 1.5 Flash pentru viteză/context mare
         self.llm = ChatVertexAI(
-            model_name=MODEL_FAST,
+            model=MODEL_FAST,
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
             temperature=0.3,

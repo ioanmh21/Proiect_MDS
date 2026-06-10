@@ -25,7 +25,7 @@ import re
 from typing import Optional
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from langchain_google_vertexai import VertexAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings as VertexAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from supabase import create_client, Client
 from pydantic import BaseModel
@@ -74,7 +74,7 @@ def clean_text_for_indexing(text: str) -> str:
 class RAGRetriever:
     def __init__(self):
         self.embeddings = VertexAIEmbeddings(
-            model="text-embedding-004",
+            model="models/text-embedding-004",
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
         )

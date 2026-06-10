@@ -9,7 +9,7 @@ Responsabilități:
 
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from langchain_google_vertexai import ChatVertexAI
+from langchain_google_genai import ChatGoogleGenerativeAI as ChatVertexAI
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
 
@@ -31,6 +31,7 @@ class ProgressReport(BaseModel):
     studyTime: str
     testsCompleted: int
     aiRecommendation: AiRecommendation
+    testsHistory: List[dict] = []
 
 ANALIST_SYSTEM_PROMPT = """Ești Agentul Analist dintr-o platformă educațională. Rolul tău este să analizezi progresul unui elev și să generezi o singură recomandare educațională personalizată.
 Ai la dispoziție următoarele informații:
@@ -46,13 +47,14 @@ Trebuie să generezi un JSON valid, fără block de markdown (fără ```json), c
 }
 
 Recomandarea trebuie să fie prietenoasă, directă și adresată elevului ("Pe baza activității tale... îți recomand..."). Încearcă să targetezi cel mai slab concept identificat.
+Regulă LaTeX: Folosește sintaxa LaTeX pentru expresii matematice. Formulele inline trebuie puse strict între `$` (ex: `$E=mc^2$`), iar formulele bloc trebuie puse între `$$` pe linii separate. EVITĂ complet utilizarea formatului `\\(` și `\\[` pentru formule, folosește DOAR `$` și `$$`.
 """
 
 class AnalistAgent:
     def __init__(self):
         self.supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
         self.llm = ChatVertexAI(
-            model_name=MODEL_FAST,
+            model=MODEL_FAST,
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
             temperature=0.3,
@@ -73,18 +75,30 @@ class AnalistAgent:
     def get_student_progress(self, user_id: str) -> ProgressReport:
         average_score = 0.0
         tests_completed = 0
+        tests_history = []
         total_minutes = 0
         weak_concepts = []
 
         # 1. Fetch test results
         try:
-            tests_res = self.supabase.table("test_results").select("score").eq("student_id", user_id).execute()
+            tests_res = self.supabase.table("test_results").select("score, created_at, materials(title)").eq("student_id", user_id).order("created_at", desc=False).execute()
             if tests_res.data:
                 tests = tests_res.data
                 tests_completed = len(tests)
                 valid_scores = [float(t["score"]) for t in tests if t.get("score") is not None]
                 if valid_scores:
                     average_score = round(sum(valid_scores) / len(valid_scores), 1)
+                
+                for i, t in enumerate(tests):
+                    if t.get("score") is not None:
+                        mat_title = t.get("materials", {}).get("title", f"Test {i+1}") if t.get("materials") else f"Test {i+1}"
+                        # trunchiem titlul pt a încăpea frumos în chart
+                        if len(mat_title) > 15:
+                            mat_title = mat_title[:15] + "..."
+                        tests_history.append({
+                            "name": mat_title,
+                            "score": float(t["score"])
+                        })
         except Exception as e:
             print(f"[AnalistAgent] Error fetching tests: {e}")
 
@@ -149,7 +163,8 @@ class AnalistAgent:
                 description=ai_desc,
                 estimatedTime=ai_time,
                 difficulty=ai_diff
-            )
+            ),
+            testsHistory=tests_history
         )
 
 if __name__ == "__main__":

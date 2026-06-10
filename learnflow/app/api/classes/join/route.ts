@@ -71,3 +71,47 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ success: true, class: targetClass }, { status: 200 });
 }
+
+// DELETE /api/classes/join?classId=xxx -> Elevul iese dintr-o clasă (unenroll)
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const classId = searchParams.get('classId');
+
+  if (!classId) {
+    return NextResponse.json({ error: 'Class ID lipsă' }, { status: 400 });
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Autentificare necesară' }, { status: 401 });
+  }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  let supabaseActionClient = supabase;
+  if (token) {
+    const { createClient: createBaseClient } = require('@supabase/supabase-js');
+    supabaseActionClient = createBaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    );
+  }
+
+  const { error } = await supabaseActionClient
+    .from('student_classes')
+    .delete()
+    .eq('student_id', user.id)
+    .eq('class_id', classId);
+
+  if (error) {
+    return NextResponse.json({ error: 'Eroare la părăsirea clasei' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true }, { status: 200 });
+}

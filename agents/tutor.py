@@ -14,7 +14,7 @@ Flux (din Diagrama 2):
 
 
 
-from langchain_google_vertexai import ChatVertexAI
+from langchain_google_genai import ChatGoogleGenerativeAI as ChatVertexAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
@@ -53,7 +53,7 @@ TUTOR_SYSTEM_PROMPT = """Ești un tutore AI educațional inteligent și empatic,
 3. Folosește exemple concrete și analogii când explici concepte complexe.
 4. Încurajează studentul și construiește încrederea în el.
 5. La finalul fiecărui răspuns, pune o întrebare de verificare a înțelegerii.
-6. Folosește sintaxa LaTeX pentru expresii matematice. Formulele inline trebuie puse strict între `$` (ex: `$E=mc^2$`), iar formulele bloc trebuie puse între `$$` pe linii separate. EVITĂ complet utilizarea formatului `\(` și `\[` pentru formule, folosește DOAR `$` și `$$`.
+6. Folosește sintaxa LaTeX pentru expresii matematice. Formulele inline trebuie puse strict între `$` (ex: `$E=mc^2$`), iar formulele bloc trebuie puse între `$$` pe linii separate. EVITĂ complet utilizarea formatului `\\(` și `\\[` pentru formule, folosește DOAR `$` și `$$`.
 
 Răspunde în aceeași limbă în care îți scrie studentul.
 """
@@ -86,7 +86,7 @@ class TutorAgent:
     def __init__(self):
         # Inițializează modelul Gemini Flash prin Vertex AI
         self.llm = ChatVertexAI(
-            model_name=MODEL_FAST,
+            model=MODEL_FAST,
             project=GCP_PROJECT_ID,
             location=GCP_LOCATION,
             temperature=0.4,

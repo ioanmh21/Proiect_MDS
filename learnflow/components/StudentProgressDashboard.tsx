@@ -15,8 +15,8 @@ export interface ProgressData {
   materialsCount: number;
 }
 
-export interface WeeklyScore {
-  week: string;
+export interface TestScore {
+  name: string;
   score: number;
 }
 
@@ -33,18 +33,18 @@ export interface WeakConcept {
 
 interface StudentProgressDashboardProps {
   progressSummary?: ProgressData;
-  weeklyScores?: WeeklyScore[];
+  testScores?: TestScore[];
   conceptLevels?: ConceptLevel[];
   weakConcepts?: WeakConcept[];
 }
 
 export default function StudentProgressDashboard({
   progressSummary = { averageScore: 85, totalStudyTime: "12h 30m", materialsCount: 24 },
-  weeklyScores = [
-    { week: 'Săpt 1', score: 65 },
-    { week: 'Săpt 2', score: 72 },
-    { week: 'Săpt 3', score: 85 },
-    { week: 'Săpt 4', score: 90 },
+  testScores = [
+    { name: 'Test 1', score: 65 },
+    { name: 'Test 2', score: 72 },
+    { name: 'Test 3', score: 85 },
+    { name: 'Test 4', score: 90 },
   ],
   conceptLevels = [
     { concept: 'Algebră', level: 80 },
@@ -110,9 +110,9 @@ export default function StudentProgressDashboard({
           <h3 className="text-lg font-semibold text-white mb-6">Evoluție Scoruri (Ultimele 4 Săptămâni)</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weeklyScores} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+              <LineChart data={testScores} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff1a" vertical={false} />
-                <XAxis dataKey="week" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} domain={[0, 100]} />
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}

@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   const { data: material, error } = await supabaseForInsert
     .from('materials')
     .insert(insertPayload)
-    .select('id, title, description, type, file_url, status, class_id, chapter, created_at')
+    .select('id, title, description, type, file_url, status, class_id, created_at')
     .single();
 
   if (error) {
