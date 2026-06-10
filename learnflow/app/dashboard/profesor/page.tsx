@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import { 
   FileUp, 
   FileText, 
@@ -16,13 +17,7 @@ import {
   Plus
 } from 'lucide-react';
 
-// Mock Data
-const recentMaterials = [
-  { id: 1, title: 'Curs 4: Funcții Exponențiale', type: 'PDF', date: 'Azi, 10:30', status: 'processed', studentsViewed: 24 },
-  { id: 2, title: 'Rezolvare Exerciții Seminar 3', type: 'Video', date: 'Azi, 09:15', status: 'processing', studentsViewed: 0 },
-  { id: 3, title: 'Test Recapitulativ - Algebră', type: 'Quiz', date: 'Ieri, 14:00', status: 'processed', studentsViewed: 45 },
-  { id: 4, title: 'Material Suport - Geometrie', type: 'PDF', date: 'Luni, 11:20', status: 'error', studentsViewed: 0 },
-];
+// Mock Data for other sections
 
 const studentsAtRisk = [
   { id: 1, name: 'Andrei Popescu', issue: 'Activitate scăzută (0 conectări în 5 zile)', severity: 'high' },
@@ -34,6 +29,35 @@ const chartData = [45, 52, 38, 65, 78, 62, 85, 90, 88, 95];
 
 export default function TeacherDashboard() {
   const router = useRouter();
+  const supabase = createClient();
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMaterials() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data, error } = await supabase
+          .from('materials')
+          .select('id, title, type, status, created_at')
+          .eq('teacher_id', user.id)
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (data) {
+          setMaterials(data);
+        }
+      } catch (error) {
+        console.error('Error fetching materials:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchMaterials();
+  }, [supabase]);
 
   const handleAction = (message: string) => {
     alert(message);
@@ -77,50 +101,55 @@ export default function TeacherDashboard() {
             </div>
             
             <div className="divide-y divide-white/5">
-              {recentMaterials.map((material) => (
-                <div key={material.id} className="p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group">
-                  <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
-                    {material.type === 'Video' ? (
-                      <Video className="w-6 h-6 text-fuchsia-400" />
-                    ) : (
-                      <FileText className="w-6 h-6 text-blue-400" />
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-slate-200 truncate group-hover:text-purple-300 transition-colors">{material.title}</h3>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                      <span className="font-medium px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300">{material.type}</span>
-                      <span>•</span>
-                      <span>{material.date}</span>
-                      {material.status === 'processed' && (
-                        <>
-                          <span>•</span>
-                          <span className="flex items-center gap-1 text-slate-300"><Users className="w-3 h-3" /> {material.studentsViewed} vizualizări</span>
-                        </>
+              {isLoading ? (
+                <div className="p-8 text-center text-slate-400">Se încarcă materialele...</div>
+              ) : materials.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">Nu ai încărcat niciun material încă.</div>
+              ) : (
+                materials.map((material) => (
+                  <div key={material.id} className="p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
+                      {material.type === 'video' ? (
+                        <Video className="w-6 h-6 text-fuchsia-400" />
+                      ) : (
+                        <FileText className="w-6 h-6 text-blue-400" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-slate-200 truncate group-hover:text-purple-300 transition-colors">{material.title}</h3>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                        <span className="font-medium px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 uppercase">{material.type}</span>
+                        <span>•</span>
+                        <span>{new Date(material.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center">
+                      {material.status === 'completed' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle className="w-4 h-4" /> Finalizat
+                        </span>
+                      )}
+                      {material.status === 'processing' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <Clock3 className="w-4 h-4 animate-spin-slow" /> Se procesează
+                        </span>
+                      )}
+                      {material.status === 'pending' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                          <Clock3 className="w-4 h-4" /> În așteptare
+                        </span>
+                      )}
+                      {material.status === 'error' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                          <AlertCircle className="w-4 h-4" /> Eroare
+                        </span>
                       )}
                     </div>
                   </div>
-
-                  <div className="shrink-0 flex items-center">
-                    {material.status === 'processed' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle className="w-4 h-4" /> Finalizat
-                      </span>
-                    )}
-                    {material.status === 'processing' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        <Clock3 className="w-4 h-4 animate-spin-slow" /> Se procesează
-                      </span>
-                    )}
-                    {material.status === 'error' && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                        <AlertCircle className="w-4 h-4" /> Eroare
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </section>
 

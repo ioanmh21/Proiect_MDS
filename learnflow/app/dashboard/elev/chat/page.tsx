@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useElev } from '@/app/context/ElevContext';
-import { MessageCircle, Send, User, BrainCircuit, Loader2, ChevronLeft } from 'lucide-react';
+import { MessageCircle, Send, User, BrainCircuit, Loader2, ChevronLeft, PenTool } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -95,6 +95,16 @@ export default function StudentChatPage() {
             </div>
           </div>
         </div>
+        
+        {materialId && (
+          <button
+            onClick={() => router.push(`/dashboard/elev/test/${materialId}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20"
+          >
+            <PenTool className="w-4 h-4" />
+            <span>Testează-mă</span>
+          </button>
+        )}
       </header>
 
       {/* Chat Area */}

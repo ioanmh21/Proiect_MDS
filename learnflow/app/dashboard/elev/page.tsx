@@ -15,7 +15,8 @@ import {
   FileText,
   CheckCircle,
   Clock3,
-  LogOut
+  LogOut,
+  PenTool
 } from 'lucide-react';
 
 interface Material {
@@ -78,6 +79,7 @@ export default function StudentDashboard() {
           .from('materials')
           .select('id, title, type, status, created_at')
           .eq('class_name', className)
+          .eq('is_archived', false)
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -243,9 +245,26 @@ export default function StudentDashboard() {
                               </span>
                             )}
                             {material.status === 'completed' && (
-                              <span className="opacity-0 group-hover:opacity-100 hidden sm:inline-flex items-center gap-1 ml-3 text-xs font-medium text-purple-400 transition-opacity duration-300">
-                                <MessageCircle className="w-4 h-4" /> Discută
-                              </span>
+                              <div className="opacity-0 group-hover:opacity-100 hidden sm:flex items-center gap-2 ml-3 transition-opacity duration-300">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/dashboard/elev/test/${material.id}`);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                                >
+                                  <PenTool className="w-3.5 h-3.5" /> Dă un Test
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/dashboard/elev/chat?materialId=${material.id}`);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" /> Discută
+                                </button>
+                              </div>
                             )}
                             <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition-colors ml-2 md:ml-4 shrink-0" />
                           </div>
