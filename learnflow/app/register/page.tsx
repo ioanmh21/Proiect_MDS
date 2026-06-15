@@ -12,16 +12,17 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"student" | "teacher">("student");
-  const [className, setClassName] = useState("");
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   
   const router = useRouter();
   const supabase = createClient();
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
+    alert("Începem înregistrarea. Te rog confirmă acest mesaj.");
     setLoading(true);
     setError(null);
 
@@ -43,40 +44,50 @@ export default function RegisterPage() {
       return;
     }
 
-    if (role === "student" && !className) {
-      setError("Te rugăm să specifici clasa.");
-      setLoading(false);
-      return;
-    }
-
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-      return;
-    }
-
-    if (authData.user) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: authData.user.id,
-        first_name: firstName,
-        last_name: lastName,
-        role: role,
-        class_name: role === "student" ? className : null,
+    try {
+      console.log("Începe înregistrarea pentru:", email);
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
       });
+      
+      console.log("Rezultat signUp:", { authData, signUpError });
 
-      if (profileError) {
-        setError(profileError.message);
+      if (signUpError) {
+        alert("Eroare la signUp de la Supabase: " + signUpError.message);
+        setError(`Eroare signUp: ${signUpError.message}`);
         setLoading(false);
         return;
       }
 
-      router.push("/login?message=Înregistrare cu succes. Te rugăm să te conectezi.");
-    } else {
+      if (authData.user) {
+        console.log("Încearcă inserarea în profiles pentru ID:", authData.user.id);
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: authData.user.id,
+          first_name: firstName,
+          last_name: lastName,
+          role: role,
+          class_name: null,
+        });
+        
+        console.log("Rezultat insert profile:", profileError);
+
+        if (profileError) {
+          setError(`Eroare creare profil: ${profileError.message}`);
+          setLoading(false);
+          return;
+        }
+
+        setSuccess(true);
+        setLoading(false);
+      } else {
+        setError("Eroare necunoscută: Nu s-a putut obține utilizatorul.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      alert("A apărut o eroare neașteptată în cod: " + (err.message || "Necunoscut"));
+      console.error("Eroare neașteptată:", err);
+      setError(`Eroare neașteptată: ${err.message || "A apărut o problemă."}`);
       setLoading(false);
     }
   };
@@ -90,6 +101,26 @@ export default function RegisterPage() {
 
       <div className="relative z-10 w-full max-w-md bg-white/[0.03] backdrop-blur-[16px] border border-white/10 p-8 rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-bottom-8 duration-700">
         
+        {success ? (
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-4 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+              <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white">Cont creat cu succes!</h2>
+            <p className="text-slate-400 text-sm">
+              Te rugăm să îți verifici adresa de email pentru a confirma contul (dacă este necesar), apoi te poți conecta la platformă.
+            </p>
+            <Link
+              href="/login"
+              className="w-full inline-flex justify-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 transition-all shadow-[0_4px_14px_0_rgba(99,102,241,0.39)]"
+            >
+              Mergi la Autentificare
+            </Link>
+          </div>
+        ) : (
+          <>
         {/* Header */}
         <div className="text-center space-y-3 mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/5 border border-white/10 mb-2">
@@ -128,7 +159,6 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="text"
-                  required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   className="block w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
@@ -143,7 +173,6 @@ export default function RegisterPage() {
               </label>
               <input
                 type="text"
-                required
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className="block w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
@@ -165,7 +194,6 @@ export default function RegisterPage() {
               </div>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="block w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
@@ -188,7 +216,6 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="password"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
@@ -209,7 +236,6 @@ export default function RegisterPage() {
                 </div>
                 <input
                   type="password"
-                  required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="block w-full pl-11 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
@@ -259,26 +285,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Grade Selector (conditional) */}
-          {role === "student" && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-1.5 mt-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Clasă / Grupă
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  value={className}
-                  onChange={(e) => setClassName(e.target.value)}
-                  className="block w-full pl-4 pr-10 py-3 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all"
-                  placeholder="ex. 10A, clasa a 12-a, etc."
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -304,6 +310,8 @@ export default function RegisterPage() {
             Conectează-te aici
           </Link>
         </p>
+          </>
+        )}
       </div>
     </div>
   );

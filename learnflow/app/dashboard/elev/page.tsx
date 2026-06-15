@@ -38,7 +38,10 @@ export default function StudentDashboard() {
   const [progressData, setProgressData] = useState({
     averageScore: 0,
     studyTime: "0m",
-    testsCompleted: 0
+    testsCompleted: 0,
+    testsHistory: [],
+    conceptLevels: [],
+    weakConcepts: []
   });
   const [aiRecommendation, setAiRecommendation] = useState({
     title: "Se încarcă...",
@@ -65,7 +68,10 @@ export default function StudentDashboard() {
             setProgressData({
               averageScore: data.averageScore || 0,
               studyTime: data.studyTime || "0m",
-              testsCompleted: data.testsCompleted || 0
+              testsCompleted: data.testsCompleted || 0,
+              testsHistory: data.testsHistory || [],
+              conceptLevels: data.conceptLevels || [],
+              weakConcepts: data.weakConcepts || []
             });
             if (data.aiRecommendation) {
               setAiRecommendation(data.aiRecommendation);

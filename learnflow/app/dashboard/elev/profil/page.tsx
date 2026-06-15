@@ -14,7 +14,9 @@ export default function StudentProfilePage() {
     averageScore: 0,
     studyTime: "0m",
     testsCompleted: 0,
-    testsHistory: []
+    testsHistory: [],
+    conceptLevels: [],
+    weakConcepts: []
   });
   const [isProgressLoading, setIsProgressLoading] = useState(true);
 
@@ -29,7 +31,9 @@ export default function StudentProfilePage() {
               averageScore: data.averageScore || 0,
               studyTime: data.studyTime || "0m",
               testsCompleted: data.testsCompleted || 0,
-              testsHistory: data.testsHistory || []
+              testsHistory: data.testsHistory || [],
+              conceptLevels: data.conceptLevels || [],
+              weakConcepts: data.weakConcepts || []
             });
           }
         }
@@ -81,7 +85,9 @@ export default function StudentProfilePage() {
                 totalStudyTime: progressData.studyTime,
                 materialsCount: progressData.testsCompleted
               }}
-              testScores={progressData.testsHistory.length > 0 ? progressData.testsHistory : undefined}
+              testScores={progressData.testsHistory}
+              conceptLevels={progressData.conceptLevels}
+              weakConcepts={progressData.weakConcepts}
             />
           </div>
         )}

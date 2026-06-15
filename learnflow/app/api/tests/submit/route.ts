@@ -119,6 +119,47 @@ Returnează DOAR un JSON valid, fără markdown (\`\`\`json). Structura exactă 
       return NextResponse.json({ error: 'Failed to save evaluation' }, { status: 500 });
     }
 
+    // 5. Update study_sessions (Estimăm 15 minute per test finalizat)
+    await supabaseAdmin
+      .from('study_sessions')
+      .insert({
+        student_id: user.id,
+        topic: 'Test la cerere',
+        material_id: test.material_id,
+        started_at: new Date(Date.now() - 15 * 60000).toISOString(),
+        ended_at: new Date().toISOString()
+      });
+
+    // 6. Update weak_concepts based on this evaluation
+    try {
+      const materialData = await supabaseAdmin.from('materials').select('title').eq('id', test.material_id).single();
+      const materialTitle = materialData.data?.title || 'Concept Necunoscut';
+      
+      let gresite = 0;
+      evaluare.feedback_intrebari.forEach((f: any) => {
+        if (!f.este_corect) gresite++;
+      });
+      
+      if (gresite > 0) {
+        const errorRate = Math.round((gresite / evaluare.feedback_intrebari.length) * 100);
+        
+        const profileData = await supabaseAdmin.from('student_profiles').select('weak_concepts').eq('id', user.id).single();
+        let weakConcepts = profileData.data?.weak_concepts || [];
+        if (!Array.isArray(weakConcepts)) weakConcepts = [];
+        
+        const existingIdx = weakConcepts.findIndex((c: any) => c.concept === materialTitle);
+        if (existingIdx >= 0) {
+          weakConcepts[existingIdx].errorRate = Math.round((weakConcepts[existingIdx].errorRate + errorRate) / 2);
+        } else {
+          weakConcepts.push({ concept: materialTitle, errorRate });
+        }
+        
+        await supabaseAdmin.from('student_profiles').upsert({ id: user.id, student_id: user.id, weak_concepts: weakConcepts });
+      }
+    } catch (e) {
+      console.error("Non-critical error updating profile stats:", e);
+    }
+
     return NextResponse.json({
       success: true,
       evaluare: evaluare

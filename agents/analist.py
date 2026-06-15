@@ -32,6 +32,8 @@ class ProgressReport(BaseModel):
     testsCompleted: int
     aiRecommendation: AiRecommendation
     testsHistory: List[dict] = []
+    conceptLevels: List[dict] = []
+    weakConcepts: List[dict] = []
 
 ANALIST_SYSTEM_PROMPT = """Ești Agentul Analist dintr-o platformă educațională. Rolul tău este să analizezi progresul unui elev și să generezi o singură recomandare educațională personalizată.
 Ai la dispoziție următoarele informații:
@@ -91,10 +93,13 @@ class AnalistAgent:
                 
                 for i, t in enumerate(tests):
                     if t.get("score") is not None:
-                        mat_title = t.get("materials", {}).get("title", f"Test {i+1}") if t.get("materials") else f"Test {i+1}"
-                        # trunchiem titlul pt a încăpea frumos în chart
-                        if len(mat_title) > 15:
-                            mat_title = mat_title[:15] + "..."
+                        base_title = t.get("materials", {}).get("title", "Test") if t.get("materials") else "Test"
+                        if len(base_title) > 12:
+                            base_title = base_title[:12] + "..."
+                        
+                        # Adaugam index-ul testului pentru a face numele unic pt Recharts
+                        mat_title = f"{base_title} #{i+1}"
+                        
                         tests_history.append({
                             "name": mat_title,
                             "score": float(t["score"])
@@ -102,20 +107,29 @@ class AnalistAgent:
         except Exception as e:
             print(f"[AnalistAgent] Error fetching tests: {e}")
 
-        # 2. Fetch study sessions (fallback la 0 dacă lipsește tabela/coloana)
+        # 2. Fetch study sessions
         try:
-            sessions_res = self.supabase.table("study_sessions").select("*").eq("user_id", user_id).execute()
+            sessions_res = self.supabase.table("study_sessions").select("*").eq("student_id", user_id).execute()
             if sessions_res.data:
-                # Daca exista vreo coloana de durata, o folosim, altfel estimam 30m / sesiune
+                from datetime import datetime
                 for s in sessions_res.data:
-                    if "duration_minutes" in s and s["duration_minutes"] is not None:
+                    if "started_at" in s and "ended_at" in s and s["started_at"] and s["ended_at"]:
+                        try:
+                            # Parse ISO strings (handling the 'Z' if present)
+                            start_str = s["started_at"].replace("Z", "+00:00")
+                            end_str = s["ended_at"].replace("Z", "+00:00")
+                            start = datetime.fromisoformat(start_str)
+                            end = datetime.fromisoformat(end_str)
+                            diff = (end - start).total_seconds() / 60
+                            total_minutes += int(diff)
+                        except Exception:
+                            total_minutes += 15
+                    elif "duration_minutes" in s and s["duration_minutes"] is not None:
                         total_minutes += int(s["duration_minutes"])
-                    elif "duration" in s and s["duration"] is not None:
-                        total_minutes += int(s["duration"])
                     else:
-                        total_minutes += 30 # estimare default
+                        total_minutes += 15 # estimare default
         except Exception as e:
-            print(f"[AnalistAgent] Error fetching study sessions (might not exist): {e}")
+            print(f"[AnalistAgent] Error fetching study sessions: {e}")
 
         # 3. Fetch weak concepts
         try:
@@ -154,6 +168,28 @@ class AnalistAgent:
         except Exception as e:
             print(f"[AnalistAgent] Error parsing LLM JSON: {e}")
 
+        # Formatăm weak concepts pentru UI
+        formatted_weak_concepts = []
+        formatted_concept_levels = []
+        
+        for idx, wc in enumerate(weak_concepts):
+            if isinstance(wc, dict) and "concept" in wc:
+                concept_name = wc["concept"]
+                error_rate = wc.get("errorRate", 50)
+                
+                # Adăugăm la weak_concepts
+                formatted_weak_concepts.append({
+                    "id": f"wc_{idx}",
+                    "name": concept_name,
+                    "errorRate": error_rate
+                })
+                
+                # Deduceam un level aproximativ pentru radar chart (100 - errorRate)
+                formatted_concept_levels.append({
+                    "concept": concept_name,
+                    "level": 100 - error_rate
+                })
+
         return ProgressReport(
             averageScore=average_score,
             studyTime=self.format_study_time(total_minutes),
@@ -164,7 +200,9 @@ class AnalistAgent:
                 estimatedTime=ai_time,
                 difficulty=ai_diff
             ),
-            testsHistory=tests_history
+            testsHistory=tests_history,
+            conceptLevels=formatted_concept_levels,
+            weakConcepts=formatted_weak_concepts
         )
 
 if __name__ == "__main__":

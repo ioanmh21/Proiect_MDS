@@ -163,6 +163,9 @@ export default function TestPage() {
                         <h4 className="font-medium text-slate-200 mb-1">Întrebarea {idx + 1}</h4>
                         <p className="text-slate-400 text-sm mb-2">{q.text}</p>
                         <div className="text-sm font-medium text-white mb-1">Răspunsul tău: <span className="text-slate-300 font-normal">{answers[idx] || 'Nu ai răspuns'}</span></div>
+                        {!fb?.este_corect && (
+                          <div className="text-sm font-medium text-emerald-400 mb-2">Răspuns corect: <span className="font-normal">{q.raspuns}</span></div>
+                        )}
                         <div className={`text-sm ${fb?.este_corect ? 'text-emerald-400' : 'text-red-400'}`}>
                           {fb?.explicatie_scurta}
                         </div>

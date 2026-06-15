@@ -5,7 +5,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export const updateSession = async (request: NextRequest) => {
-  console.log("Middleware running for path:", request.nextUrl.pathname);
   let supabaseResponse = NextResponse.next({
     request: {
       headers: request.headers,
@@ -40,7 +39,6 @@ export const updateSession = async (request: NextRequest) => {
   // issues with users being randomly logged out.
 
   const userResponse = await supabase.auth.getUser();
-  console.log("getUser response:", userResponse);
   const user = userResponse.data.user;
 
   // Protect /dashboard and all its subpaths
@@ -59,10 +57,9 @@ export const updateSession = async (request: NextRequest) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError) {
+    if (profileError && profileError.code !== 'PGRST116') {
       console.error("Error fetching profile in middleware:", profileError);
     }
-    console.log("Fetched profile:", profile);
 
     const role = profile?.role?.toLowerCase();
     

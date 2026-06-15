@@ -39,24 +39,10 @@ interface StudentProgressDashboardProps {
 }
 
 export default function StudentProgressDashboard({
-  progressSummary = { averageScore: 85, totalStudyTime: "12h 30m", materialsCount: 24 },
-  testScores = [
-    { name: 'Test 1', score: 65 },
-    { name: 'Test 2', score: 72 },
-    { name: 'Test 3', score: 85 },
-    { name: 'Test 4', score: 90 },
-  ],
-  conceptLevels = [
-    { concept: 'Algebră', level: 80 },
-    { concept: 'Geometrie', level: 60 },
-    { concept: 'Analiză', level: 90 },
-    { concept: 'Trigonometrie', level: 40 },
-    { concept: 'Logică', level: 75 },
-  ],
-  weakConcepts = [
-    { id: 'c1', name: 'Trigonometrie', errorRate: 60 },
-    { id: 'c2', name: 'Geometrie plană', errorRate: 40 },
-  ]
+  progressSummary = { averageScore: 0, totalStudyTime: "0m", materialsCount: 0 },
+  testScores = [],
+  conceptLevels = [],
+  weakConcepts = []
 }: StudentProgressDashboardProps) {
   const router = useRouter();
 
@@ -107,27 +93,33 @@ export default function StudentProgressDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Line Chart: Evoluția Scorurilor */}
         <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Evoluție Scoruri (Ultimele 4 Săptămâni)</h3>
+          <h3 className="text-lg font-semibold text-white mb-6">Evoluție Scoruri (Ultimele Teste)</h3>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={testScores} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff1a" vertical={false} />
-                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} domain={[0, 100]} />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
-                  itemStyle={{ color: '#a855f7' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="score" 
-                  stroke="#a855f7" 
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#a855f7', strokeWidth: 2, stroke: '#1e293b' }}
-                  activeDot={{ r: 6, fill: '#c084fc', strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {testScores.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={testScores} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff1a" vertical={false} />
+                  <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8' }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
+                    itemStyle={{ color: '#a855f7' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="score" 
+                    stroke="#a855f7" 
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#a855f7', strokeWidth: 2, stroke: '#1e293b' }}
+                    activeDot={{ r: 6, fill: '#c084fc', strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+                Nu ai completat încă niciun test.
+              </div>
+            )}
           </div>
         </div>
 
@@ -135,25 +127,48 @@ export default function StudentProgressDashboard({
         <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-white mb-6">Nivel de Stăpânire per Concept</h3>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={conceptLevels}>
-                <PolarGrid stroke="#ffffff20" />
-                <PolarAngleAxis dataKey="concept" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar
-                  name="Nivel"
-                  dataKey="level"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  fill="#3b82f6"
-                  fillOpacity={0.3}
-                />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
-                  itemStyle={{ color: '#3b82f6' }}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
+            {conceptLevels.length >= 3 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={conceptLevels}>
+                  <PolarGrid stroke="#ffffff20" />
+                  <PolarAngleAxis dataKey="concept" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Radar
+                    name="Nivel"
+                    dataKey="level"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fill="#3b82f6"
+                    fillOpacity={0.3}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', color: '#fff' }}
+                    itemStyle={{ color: '#3b82f6' }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            ) : conceptLevels.length > 0 ? (
+              <div className="flex flex-col justify-center h-full gap-6 px-4">
+                {conceptLevels.map((c, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-white font-medium">{c.concept}</span>
+                      <span className="text-blue-400 font-bold">{c.level}%</span>
+                    </div>
+                    <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-white/5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${c.level}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500 text-sm text-center px-4">
+                Învață și rezolvă teste pentru a-ți vizualiza nivelul de cunoștințe pe fiecare concept în parte.
+              </div>
+            )}
           </div>
         </div>
       </div>

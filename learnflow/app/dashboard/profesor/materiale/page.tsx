@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileUp, FileText, Video, Search, Filter, X, Loader2, BookX, Pencil, Trash2 } from 'lucide-react';
+import { FileUp, FileText, Video, Search, Filter, X, Loader2, BookX, Pencil, Trash2, Settings } from 'lucide-react';
 import FileUploader from '@/components/FileUploader';
 import MaterialMetadataForm from '@/components/MaterialMetadataForm';
+import TestConfigModal from '@/components/TestConfigModal';
 import type { MaterialInitialData } from '@/components/MaterialMetadataForm';
 
 interface MaterialFromDB {
@@ -18,6 +19,7 @@ interface MaterialFromDB {
   grade: number | null;
   chapter: string | null;
   created_at: string;
+  test_config: { easy: number; medium: number; hard: number };
 }
 
 export default function MaterialePage() {
@@ -29,6 +31,7 @@ export default function MaterialePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [configuringMaterial, setConfiguringMaterial] = useState<MaterialFromDB | null>(null);
 
   // ── Fetch materials din DB ───────────────────────────────────────
   const fetchMaterials = useCallback(async () => {
@@ -185,6 +188,22 @@ export default function MaterialePage() {
         </div>
       )}
 
+      {configuringMaterial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <TestConfigModal
+            materialId={configuringMaterial.id}
+            materialTitle={configuringMaterial.title}
+            initialConfig={configuringMaterial.test_config}
+            onClose={() => setConfiguringMaterial(null)}
+            onSuccess={(newConfig) => {
+              // Update local state without full reload
+              setMaterials(prev => prev.map(m => m.id === configuringMaterial.id ? { ...m, test_config: newConfig } : m));
+              setConfiguringMaterial(null);
+            }}
+          />
+        </div>
+      )}
+
       <div className="bg-white/[0.03] border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-center bg-white/[0.02]">
           <div className="relative w-full sm:w-96">
@@ -267,6 +286,13 @@ export default function MaterialePage() {
                     <td className="p-4 text-slate-400 text-sm">{formatDate(mat.created_at)}</td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-4">
+                        <button
+                          onClick={() => setConfiguringMaterial(mat)}
+                          className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors inline-flex items-center gap-1.5"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                          Setări Test
+                        </button>
                         <button
                           onClick={() => handleEdit(mat)}
                           className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1.5"

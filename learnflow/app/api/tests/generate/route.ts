@@ -45,7 +45,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Fetch chunks using admin client to bypass RLS (students don't own the chunks)
+    // 2. Fetch chunks and config using admin client
+    const { data: materialData, error: materialError } = await supabaseAdmin
+      .from('materials')
+      .select('test_config')
+      .eq('id', materialId)
+      .single();
+
+    const testConfig = materialData?.test_config || { easy: 3, medium: 2, hard: 1 };
+
     const { data: chunks, error: chunksError } = await supabaseAdmin
       .from('chunks')
       .select('content')
@@ -56,7 +64,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Material chunks not found' }, { status: 404 });
     }
 
-    // Preluăm transcriptul limitat la 300k caractere (context mare dar limitat de safe)
+    // Preluăm transcriptul limitat la 300k caractere
     const transcript = chunks.map(c => c.content).join('\n\n').substring(0, 300000);
 
     // 3. Prompt Gemini (Vertex AI - gemini-2.5-pro)
@@ -65,12 +73,13 @@ export async function POST(req: NextRequest) {
     const prompt = `
 Ești un asistent educațional expert. Un elev vrea să se testeze din următorul material.
 Sarcina ta este să generezi un test provocator (Quiz), conținând:
-- 3 întrebări Ușoare (grilă)
-- 2 întrebări Medii (grilă)
-- 1 întrebare Grea (scrisă)
+- ${testConfig.easy} întrebări Ușoare (grilă)
+- ${testConfig.medium} întrebări Medii (grilă)
+- ${testConfig.hard} întrebări Grele (scrisă)
 
 Pentru "grilă", adaugă un array "optiuni" cu fix 4 variante (A, B, C, D) și pune răspunsul corect în "raspuns".
 Pentru "scris", lasă "optiuni" null și pune un răspuns complet/așteptat în "raspuns", ca barem de corectare.
+Dacă un anumit tip de întrebare are numărul 0, te rog nu genera nicio întrebare din acel tip.
 
 Transcript material:
 ${transcript}
