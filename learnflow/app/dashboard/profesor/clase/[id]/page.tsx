@@ -11,14 +11,12 @@ import {
   AlertCircle,
   Key,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  BarChart3
 } from 'lucide-react';
+import ClassReportTable from '@/components/ClassReportTable';
 
-interface Student {
-  id: string;
-  name: string;
-  joined_at: string;
-}
+// Removed simple Student interface in favor of dynamic reports data
 
 interface ClassDetails {
   id: string;
@@ -35,7 +33,7 @@ export default function TeacherClassView() {
   const supabase = createClient();
   
   const [classDetails, setClassDetails] = useState<ClassDetails | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [reportData, setReportData] = useState<{ students: any[], alerts: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -56,11 +54,11 @@ export default function TeacherClassView() {
         if (classError) throw new Error('Nu am putut încărca detaliile clasei.');
         setClassDetails(classData);
 
-        // Fetch students
-        const res = await fetch(`/api/classes/${classId}/students`);
+        // Fetch report data
+        const res = await fetch(`/api/classes/${classId}/reports`);
         if (res.ok) {
           const data = await res.json();
-          setStudents(data.students || []);
+          setReportData(data);
         }
       } catch (err: any) {
         console.error('Error fetching class data:', err);
@@ -92,7 +90,7 @@ export default function TeacherClassView() {
         throw new Error(data.error || 'Eroare la eliminarea elevului');
       }
 
-      setStudents(prev => prev.filter(s => s.id !== studentId));
+      setReportData(prev => prev ? { ...prev, students: prev.students.filter(s => s.id !== studentId) } : prev);
     } catch (err: any) {
       alert(err.message);
     }
@@ -173,62 +171,40 @@ export default function TeacherClassView() {
             {isLoading ? (
               <div className="h-8 w-12 bg-white/10 animate-pulse rounded-lg" />
             ) : (
-              <p className="text-3xl font-bold text-white">{students.length}</p>
+              <p className="text-3xl font-bold text-white">{reportData?.students?.length || 0}</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Students List */}
-      <section className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-        <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-          <Users className="w-5 h-5 text-purple-400" />
-          Lista Elevilor
-        </h2>
-        
+      {/* Weekly Reports & Alerts */}
+      <section className="space-y-8">
         {isLoading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="animate-pulse flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/10" />
-                  <div className="h-5 w-32 bg-white/10 rounded" />
-                </div>
-                <div className="h-8 w-24 bg-white/10 rounded-lg" />
-              </div>
-            ))}
+            <div className="h-40 w-full bg-white/5 animate-pulse rounded-2xl" />
+            <div className="h-96 w-full bg-white/5 animate-pulse rounded-2xl" />
           </div>
-        ) : students.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 border border-dashed border-white/10 rounded-xl">
-            <Users className="w-12 h-12 text-slate-600 mx-auto mb-4 opacity-50" />
-            <p>Niciun elev nu s-a înscris în această clasă.</p>
-            <p className="text-sm mt-1">Oferă-le codul <span className="font-mono text-emerald-400">{classDetails?.code}</span> pentru a se înrola.</p>
+        ) : reportData?.students?.length === 0 ? (
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+            <div className="text-center py-12 text-slate-400 border border-dashed border-white/10 rounded-xl">
+              <Users className="w-12 h-12 text-slate-600 mx-auto mb-4 opacity-50" />
+              <p>Niciun elev nu s-a înscris în această clasă momentan.</p>
+              <p className="text-sm mt-1">Oferă-le codul <span className="font-mono text-emerald-400">{classDetails?.code}</span> pentru a se înrola.</p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            {students.map(student => (
-              <div key={student.id} className="flex items-center justify-between p-4 bg-black/20 hover:bg-white/[0.02] border border-white/5 rounded-xl transition-colors group">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-lg font-medium text-slate-300 border border-white/10 shadow-inner">
-                    {student.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-200">{student.name}</h3>
-                    <p className="text-xs text-slate-500">S-a alăturat: {new Date(student.joined_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => handleKickStudent(student.id, student.name)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-red-400 hover:text-white bg-red-500/5 hover:bg-red-500/80 border border-red-500/10 hover:border-red-500 transition-all opacity-100 sm:opacity-50 sm:group-hover:opacity-100"
-                  title="Elimină elevul din clasă"
-                >
-                  <UserMinus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Elimină</span>
-                </button>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-purple-400" />
+                Rapoarte de Performanță
+              </h2>
+              <ClassReportTable 
+                data={reportData?.students || []} 
+                onKickStudent={handleKickStudent}
+              />
+            </div>
+          </>
         )}
       </section>
 

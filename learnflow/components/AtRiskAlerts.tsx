@@ -53,13 +53,11 @@ const MOCK_ALERTS: AtRiskAlert[] = [
 
 interface AtRiskAlertsProps {
   alerts?: AtRiskAlert[];
-  onContactStudent?: (studentName: string) => void;
   onMarkResolved?: (alertId: string) => void;
 }
 
 export default function AtRiskAlerts({ 
   alerts = MOCK_ALERTS, 
-  onContactStudent, 
   onMarkResolved 
 }: AtRiskAlertsProps) {
   // Păstrăm un state local pentru alertele curente, ca să putem simula dispariția lor la click pe "Rezolvat"
@@ -158,14 +156,6 @@ export default function AtRiskAlerts({
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-2 mt-auto">
-              <button 
-                onClick={() => onContactStudent ? onContactStudent(alert.studentName) : console.log(`Contacting ${alert.studentName}`)}
-                className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-sm font-medium text-slate-200 flex items-center justify-center gap-2"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Contactează elevul
-              </button>
-              
               <button 
                 onClick={() => handleResolve(alert.id)}
                 className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors text-sm font-medium text-emerald-400 flex items-center justify-center gap-2"

@@ -265,7 +265,7 @@ export default function StudentDashboard() {
                     difficulty: (aiRecommendation.difficulty as any) || 'Mediu',
                     estimatedTime: aiRecommendation.estimatedTime || '15m'
                   }}
-                  onStart={() => console.log('Starting recommendation...')}
+                  onStart={() => router.push('/dashboard/elev/chat')}
                 />
               )}
             </section>
