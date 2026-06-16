@@ -265,7 +265,7 @@ export default function StudentDashboard() {
                     difficulty: (aiRecommendation.difficulty as any) || 'Mediu',
                     estimatedTime: aiRecommendation.estimatedTime || '15m'
                   }}
-                  onStart={() => router.push('/dashboard/elev/chat')}
+                  onStart={() => router.push(`/dashboard/elev/chat?prompt=${encodeURIComponent(`Salut! AI-ul mi-a analizat progresul și mi-a sugerat asta: "${aiRecommendation.description}". De unde crezi că ar trebui să începem?`)}`)}
                 />
               )}
             </section>

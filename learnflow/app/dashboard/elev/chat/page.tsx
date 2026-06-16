@@ -21,7 +21,7 @@ export default function StudentChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: `Salut, ${userName}! Sunt Tutorul tău AI. Cum te pot ajuta azi cu materialele de la clasă?` }
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(searchParams.get('prompt') || '');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
