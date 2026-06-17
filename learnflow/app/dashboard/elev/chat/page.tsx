@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useElev } from '@/app/context/ElevContext';
 import { MessageCircle, Send, User, BrainCircuit, Loader2, ChevronLeft, PenTool } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -13,7 +13,7 @@ interface Message {
   content: string;
 }
 
-export default function StudentChatPage() {
+function StudentChatContent() {
   const { userName } = useElev();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -174,5 +174,13 @@ export default function StudentChatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StudentChatPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#020617] text-white">Se încarcă...</div>}>
+      <StudentChatContent />
+    </Suspense>
   );
 }
