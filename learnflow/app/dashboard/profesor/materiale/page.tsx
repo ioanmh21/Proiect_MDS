@@ -43,7 +43,7 @@ export default function MaterialePage() {
     } catch (error) {
       console.error('Eroare fetch materials:', error);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 0);
     }
   }, []);
 

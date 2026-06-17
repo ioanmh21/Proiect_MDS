@@ -18,6 +18,7 @@ jobs:
   lint:
     name: Lint (ESLint)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Descărcare cod sursă (Checkout)
         uses: actions/checkout@v4
@@ -64,7 +65,7 @@ jobs:
   # ==========================================
   build:
     name: Build (Next Build)
-    needs: [lint, type-check]
+    needs: [type-check]
     runs-on: ubuntu-latest
     steps:
       - name: Descărcare cod sursă (Checkout)

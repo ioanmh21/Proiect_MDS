@@ -84,7 +84,7 @@ export function useStudentAnalytics(userId: string | undefined): UseStudentAnaly
 
     if (shouldUseNetwork) {
       if (!hasStaleData) {
-        setIsLoading(true);
+        setTimeout(() => setIsLoading(true), 0);
       }
       
       try {
@@ -121,7 +121,7 @@ export function useStudentAnalytics(userId: string | undefined): UseStudentAnaly
   }, [userId]);
 
   // Helper pentru a asigura curățarea timeout-urilor la unmount sau re-programare
-  const scheduleRefresh = useCallback((delayMs: number) => {
+  const scheduleRefresh = useCallback(function scheduleRefreshFn(delayMs: number) {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }

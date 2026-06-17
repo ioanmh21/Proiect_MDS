@@ -22,7 +22,7 @@ export default function GestioneazaClase() {
     fetchClasses();
   }, []);
 
-  const fetchClasses = async () => {
+  async function fetchClasses() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/classes');
@@ -37,7 +37,7 @@ export default function GestioneazaClase() {
     }
   };
 
-  const handleCreateClass = async (e: React.FormEvent) => {
+  async function handleCreateClass(e: React.FormEvent) {
     e.preventDefault();
     if (newClassName.length < 3) {
       setError('Numele trebuie să aibă minim 3 caractere.');

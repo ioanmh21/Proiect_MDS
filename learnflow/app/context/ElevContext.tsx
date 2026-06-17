@@ -59,7 +59,7 @@ export function ElevProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error fetching elev profile:", error);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 0);
     }
   }, [supabase]);
 

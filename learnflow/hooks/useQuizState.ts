@@ -132,14 +132,6 @@ export function useQuizState(testId: string): UseQuizStateReturn {
     };
   }, [status]);
 
-  // Auto-finish când timpul expiră
-  useEffect(() => {
-    if (timeRemaining === 0 && status === 'in_progress' && questions.length > 0) {
-      finishTest();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRemaining, status, questions.length]);
-
   // ========================================================================
   // 3. Auto-save la fiecare 30 secunde
   // ========================================================================
@@ -259,6 +251,14 @@ export function useQuizState(testId: string): UseQuizStateReturn {
       setIsSubmitting(false);
     }
   }, [testId, status, questions]);
+
+  // Auto-finish când timpul expiră
+  useEffect(() => {
+    if (timeRemaining === 0 && status === 'in_progress' && questions.length > 0) {
+      finishTest();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRemaining, status, questions.length, finishTest]);
 
   // ========================================================================
   // 7. Navigare între întrebări
