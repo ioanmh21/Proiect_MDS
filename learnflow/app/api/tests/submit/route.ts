@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // 1. Fetch existing test
     const { data: test, error: errTest } = await supabaseAdmin
       .from('test_results')
-      .select('id, questions, status')
+      .select('id, questions, status, material_id')
       .eq('id', testId)
       .eq('student_id', user.id)
       .single();
