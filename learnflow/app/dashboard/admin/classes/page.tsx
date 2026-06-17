@@ -4,6 +4,8 @@ import { createClient as createBaseClient } from '@supabase/supabase-js';
 import { DeleteClassButton } from './DeleteClassButton';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminClassesPage() {
   const adminSupabase = createBaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

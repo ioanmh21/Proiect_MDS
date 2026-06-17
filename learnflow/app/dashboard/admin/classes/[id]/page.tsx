@@ -4,6 +4,8 @@ import { createClient as createBaseClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { DeleteUserButton } from '../../DeleteUserButton';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminClassDetailsPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const classId = params.id;

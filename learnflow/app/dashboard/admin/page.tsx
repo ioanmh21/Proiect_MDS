@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 import { createClient as createBaseClient } from '@supabase/supabase-js';
 import { DeleteUserButton } from './DeleteUserButton';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboardPage() {
   const adminSupabase = createBaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
