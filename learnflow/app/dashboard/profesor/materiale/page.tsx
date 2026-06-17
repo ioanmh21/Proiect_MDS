@@ -35,21 +35,22 @@ export default function MaterialePage() {
   const [configuringMaterial, setConfiguringMaterial] = useState<MaterialFromDB | null>(null);
 
   // ── Fetch materials din DB ───────────────────────────────────────
-  useEffect(() => {
-    async function fetchMaterials() {
-      try {
-        const response = await fetch('/api/materials');
-        if (!response.ok) throw new Error('Eroare la încărcarea materialelor');
-        const data = await response.json();
-        setMaterials(data.materials || []);
-      } catch (error) {
-        console.error('Eroare fetch materials:', error);
-      } finally {
-        setTimeout(() => setIsLoading(false), 0);
-      }
+  const fetchMaterials = useCallback(async () => {
+    try {
+      const response = await fetch('/api/materials');
+      if (!response.ok) throw new Error('Eroare la încărcarea materialelor');
+      const data = await response.json();
+      setMaterials(data.materials || []);
+    } catch (error) {
+      console.error('Eroare fetch materials:', error);
+    } finally {
+      setTimeout(() => setIsLoading(false), 0);
     }
-    fetchMaterials();
   }, []);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [fetchMaterials]);
 
   // ── Handler „Editează" ───────────────────────────────────────────
   const handleEdit = (mat: MaterialFromDB) => {
