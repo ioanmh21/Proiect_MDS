@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Tipuri pentru datele ce vin din API

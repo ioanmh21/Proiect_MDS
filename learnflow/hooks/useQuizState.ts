@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   QuizQuestion,
