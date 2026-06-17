@@ -106,7 +106,7 @@ export const exportReportToPDF = (classData: ClassReport) => {
     theme: 'striped',
     headStyles: { fillColor: [79, 70, 229] }, // Indigo (asemănător cu UI-ul din dashboard)
     styles: { fontSize: 10 },
-    didParseCell: function (data) {
+    didParseCell: function (data: any) {
       // Colorăm coloana "Stare Risc" (index 5)
       if (data.section === 'body' && data.column.index === 5) {
         if (data.cell.raw === 'DA (Atentie)') {

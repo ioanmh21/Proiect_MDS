@@ -14,7 +14,7 @@ interface Message {
 }
 
 export default function StudentChatPage() {
-  const { userName, className } = useElev();
+  const { userName } = useElev();
   const router = useRouter();
   const searchParams = useSearchParams();
   const materialId = searchParams.get('materialId') || '';
@@ -47,7 +47,6 @@ export default function StudentChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, userMessage],
-          className,
           materialId
         }),
       });

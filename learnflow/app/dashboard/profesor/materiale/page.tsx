@@ -56,9 +56,7 @@ export default function MaterialePage() {
     setEditingMaterial({
       id: mat.id,
       title: mat.title,
-      subject: mat.subject,
-      grade: mat.grade,
-      chapter: mat.chapter,
+      class_id: null,
       description: mat.description,
     });
     setShowMetadataForm(true);

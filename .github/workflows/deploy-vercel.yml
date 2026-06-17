@@ -1,0 +1,150 @@
+name: Deploy to Vercel
+
+on:
+  # Rulează la push pe main (după merge)
+  push:
+    branches: [main]
+
+  # Rulează și pe PR-uri (pentru preview deployments)
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+
+    # Condiție: rulează DOAR după ce CI-ul principal a trecut cu succes
+    # Folosim "if" pentru push (CI-ul rulează pe același commit)
+    # Pe PR-uri, GitHub verifică automat statusul celorlalte check-uri
+    needs: []  # nu avem needs cross-workflow, folosim altă abordare mai jos
+
+    # Permisiuni necesare pentru a comenta pe PR
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+
+    steps:
+      # =============================================
+      # STEP 1: Checkout cod sursă
+      # =============================================
+      - name: Descărcare cod sursă (Checkout)
+        uses: actions/checkout@v4
+
+      # =============================================
+      # STEP 2: Așteptare CI principal (lint + type-check + build)
+      # =============================================
+      - name: Așteptare CI principal să treacă
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: 'Build (Next Build)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+      # =============================================
+      # STEP 3: Configurare Node.js
+      # =============================================
+      - name: Configurare Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './learnflow/package-lock.json'
+
+      # =============================================
+      # STEP 4: Instalare Vercel CLI
+      # =============================================
+      - name: Instalare Vercel CLI
+        run: npm install -g vercel@latest
+
+      # =============================================
+      # STEP 5: Pull configurare Vercel
+      # =============================================
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./learnflow
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # =============================================
+      # STEP 6: Build proiect cu Vercel
+      # =============================================
+      - name: Build Project Artifacts
+        run: vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: ./learnflow
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # =============================================
+      # STEP 7: Deploy pe Vercel
+      # =============================================
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "### 🚀 Deployment URL" >> $GITHUB_STEP_SUMMARY
+          echo "$DEPLOYMENT_URL" >> $GITHUB_STEP_SUMMARY
+        working-directory: ./learnflow
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # =============================================
+      # STEP 8: Comentariu pe PR cu URL-ul deployment-ului
+      # =============================================
+      - name: Comentariu pe PR cu URL-ul deployment-ului
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const deploymentUrl = '${{ steps.deploy.outputs.url }}';
+            const isProd = '${{ github.ref }}' === 'refs/heads/main';
+            const environment = isProd ? '🟢 Production' : '🟡 Preview';
+
+            const body = `## 🚀 Vercel Deployment
+
+            | Detaliu | Valoare |
+            |---------|---------|
+            | **Status** | ✅ Deployed |
+            | **Environment** | ${environment} |
+            | **URL** | [${deploymentUrl}](${deploymentUrl}) |
+            | **Commit** | \`${context.sha.substring(0, 7)}\` |
+            | **Branch** | \`${context.payload.pull_request.head.ref}\` |
+
+            ---
+            *Deploy automat realizat de GitHub Actions* 🤖`;
+
+            // Căutăm un comentariu existent de la bot pentru a-l actualiza
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body.includes('🚀 Vercel Deployment')
+            );
+
+            if (botComment) {
+              // Actualizăm comentariul existent
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              // Creăm un comentariu nou
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
