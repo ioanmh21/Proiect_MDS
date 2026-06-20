@@ -1,0 +1,37 @@
+[
+  {
+    "agentName": "Tutor Agent",
+    "metricName": "Calitatea Explicațiilor (Score 1-5)",
+    "score": 4.7,
+    "maxScore": 5,
+    "totalEvaluated": 10,
+    "distribution": {
+      "2": 1,
+      "4": 1,
+      "5": 8
+    },
+    "issues": [
+      {
+        "itemOrQuestion": "Ce este încapsularea?",
+        "actualResponse": "E un fel de funcție privată.",
+        "expectedOrVerdict": "Ascunderea detaliilor de implementare.",
+        "judgeReason": "Răspunsul este ezitant și vag."
+      }
+    ]
+  },
+  {
+    "agentName": "Material Generator Agent",
+    "metricName": "Rata de Halucinații (%)",
+    "score": 33.33,
+    "maxScore": 100,
+    "totalEvaluated": 6,
+    "issues": [
+      {
+        "itemOrQuestion": "Cine a descoperit planeta Uranus?",
+        "actualResponse": "William Herschel în 1781.",
+        "expectedOrVerdict": "N/A",
+        "judgeReason": "Informația nu apare nicăieri în transcriptul furnizat."
+      }
+    ]
+  }
+]

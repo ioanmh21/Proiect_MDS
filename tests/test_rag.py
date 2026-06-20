@@ -60,16 +60,18 @@ class TestRAGRetriever:
         assert isinstance(result, RAGResult)
         assert result.chunks_found == 2
         assert "Recursivitatea" in result.context
-        assert "[Pagina 5]" in result.context
+        # Formatul actual: [Fragment N, Pagina X, Relevanță: Y%]
+        assert "Pagina 5" in result.context
+        assert "Fragment 1" in result.context
         assert len(result.similarity_scores) == 2
-        # Verifică că RPC-ul corect e apelat
+        # Verifică că RPC-ul corect e apelat (hybrid_search_chunks)
         mock_sb.rpc.assert_called_with(
-            "match_chunks",
+            "hybrid_search_chunks",
             {
+                "query_text": "Ce este recursivitatea?",
                 "query_embedding": [0.1] * 768,
-                "match_count": 5,
+                "match_count": 12,
                 "filter_material_id": FAKE_MATERIAL_ID,
-                "similarity_threshold": 0.5,
             }
         )
 
@@ -107,10 +109,11 @@ class TestRAGRetriever:
         retriever = RAGRetriever()
 
         text = "Paragraf 1. " * 100 + "\n\n" + "Paragraf 2. " * 100
+        # Semnătura actuală: index_material(text, material_id, page_map=None)
         count = retriever.index_material(
             text=text,
             material_id=FAKE_MATERIAL_ID,
-            page_number=3,
+            # fără page_map → fallback split simplu
         )
 
         assert count > 0
