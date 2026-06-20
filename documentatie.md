@@ -1,252 +1,503 @@
-# Folosirea Toolurilor AI în Dezvoltarea Platformei Educaționale LearnFlow
+# Documentație Testare — LearnFlow
 
-**Raport Tehnic Academic**  
-**Proiect:** LearnFlow — Platformă educațională cu agenți AI  
-**Stack:** Next.js 16 · React 19 · Python (FastAPI/LangChain) · Supabase · Google Gemini  
-**Data:** Iunie 2026
+> **Platformă educațională cu agenți AI** | Next.js · Python · LangChain · Supabase · Google Gemini
 
 ---
 
-## 1. Introducere — Ce Tooluri Am Ales și De Ce
+## Cuprins
 
-Dezvoltarea platformei **LearnFlow** a presupus o gamă largă de sarcini tehnice eterogene: arhitectura unui sistem multi-agent în Python cu LangChain, construirea unui frontend Next.js cu TypeScript, integrarea bazei de date Supabase cu pgvector pentru RAG (Retrieval-Augmented Generation), și scrierea testelor unitare cu `pytest`. Această diversitate a creat un context ideal pentru evaluarea comparativă a mai multor tooluri AI de asistență la codare.
-
-Toolurile evaluate și motivația alegerii lor:
-
-- **GitHub Copilot** — integrat nativ în VS Code, ideal pentru completare de cod în linie, pattern-uri repetitive și boilerplate TypeScript/React.
-- **Claude (Anthropic)** — selectat pentru sarcini complexe de raționament: proiectarea arhitecturii agenților, generarea system prompt-urilor în română, și debugging multi-fișier.
-- **Cursor** — ales pentru refactorizarea la nivel de fișier și pentru funcția sa de *codebase-aware chat*, care permite interogarea contextului întregului repo.
-- **ChatGPT (GPT-4o)** — utilizat pentru explorare rapidă de idei, documentație și generarea schemelor SQL pentru Supabase.
-
-Selecția nu a fost exclusivă — fiecare tool a fost aplicat la sarcinile pentru care excelează, conform principiului *right tool for the job*. Criteriile de selecție au fost: viteza de răspuns, calitatea codului generat fără modificări, conștientizarea contextului (context-awareness), și limita de token-uri disponibile.
+1. [Introducere și Strategie de Testare](#1-introducere-și-strategie-de-testare)
+2. [Tehnologii Folosite](#2-tehnologii-folosite)
+3. [Structura Testelor (Unit Tests)](#3-structura-testelor-unit-tests)
+4. [Evaluarea Agenților AI (Evals)](#4-evaluarea-agenților-ai-evals)
+5. [Instrucțiuni de Rulare](#5-instrucțiuni-de-rulare)
 
 ---
 
-## 2. Tabel Comparativ Tooluri AI
+## 1. Introducere și Strategie de Testare
 
-| Criteriu | GitHub Copilot | Claude (Sonnet 3.7) | Cursor | ChatGPT (GPT-4o) |
-|---|---|---|---|---|
-| **Integrare IDE** | ⭐⭐⭐⭐⭐ Nativă VS Code | ⭐⭐⭐ Web/API | ⭐⭐⭐⭐⭐ IDE propriu | ⭐⭐ Web/plugin |
-| **Context Codebase** | ⭐⭐⭐ Fișier curent | ⭐⭐⭐⭐ Multi-fișier (upload) | ⭐⭐⭐⭐⭐ Indexare completă repo | ⭐⭐ Fișier individual |
-| **Calitate cod Python** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Calitate cod TypeScript/React** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Raționament arhitectural** | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Generare teste unitare** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Debugging multi-fișier** | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Generare documentație** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Suport română** | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Limita context (tokens)** | ~8K | ~200K | ~128K | ~128K |
-| **Cost** | $10/lună | $20/lună | $20/lună | $20/lună |
-| **Viteză răspuns** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Cel mai bun pentru** | Autocompletare rapidă | Arhitectură & prompturi | Refactorizare repo | Explorare & SQL |
+### Despre Proiect
 
-> **Concluzie generală:** Nu există un tool „câștigător" absolut. Eficiența maximă s-a obținut prin combinarea lor: Copilot pentru viteză în cod repetitiv, Claude pentru raționament profund și sistem multi-agent, Cursor pentru modificări cross-fișier, și ChatGPT pentru documentație și prototipare SQL.
+**LearnFlow** este o platformă educațională care orchestrează un sistem multi-agent bazat pe AI. Agenții specializați colaborează pentru a oferi tutorat personalizat, generare automată de teste, moderare de conținut și analiză de progres, toate alimentate de **Google Gemini Flash** prin LangChain și de un pipeline **RAG (Retrieval-Augmented Generation)** construit pe Supabase pgvector.
+
+### Provocările Testării
+
+Testarea unui sistem bazat pe LLM-uri ridică provocări specifice față de testarea software tradițională:
+
+- **Non-determinism**: Același prompt poate genera răspunsuri diferite la fiecare rulare.
+- **Dependențe externe**: Agenții depind de Google Vertex AI (Gemini), Supabase pgvector și embeddings — servicii costisitoare și cu latență.
+- **Corectitudinea semantică**: Un răspuns poate fi corect din punct de vedere gramatical, dar incorect pedagogic sau factual.
+
+### Strategia Adoptată
+
+Abordăm testarea pe **trei niveluri**, conform principiului piramidei de testare:
+
+```
+         ┌─────────────────────┐
+         │  INTEGRARE (E2E)    │  ← Supabase real + Gemini real
+         │  integration_*.py   │     Rulat manual, înainte de release
+         ├─────────────────────┤
+         │   UNIT TESTS        │  ← Mock complet al LLM + Supabase
+         │   test_*.py         │     Rulat automat la fiecare commit (CI)
+         ├─────────────────────┤
+         │  EVALS (Behavior)   │  ← Verificare comportament agent prin
+         │  (embedded în unit) │     inspecția output-urilor mockat
+         └─────────────────────┘
+```
+
+| Nivel | Scop | Viteza | Necesită servicii externe |
+|---|---|---|---|
+| **Unit Tests** | Validare logică internă, contracte Pydantic, flux de control | < 5s | ❌ Nu |
+| **Evals comportamentale** | Verificare că agentul respectă regulile definite în prompt | < 5s | ❌ Nu (mock) |
+| **Teste de Integrare** | Validare end-to-end cu Supabase + Gemini reale | ~30s | ✅ Da |
+
+**Principiu cheie**: Toate testele din suita `test_*.py` rulează **complet offline**, fără a apela API-uri externe, prin utilizarea sistematică a `unittest.mock`. Aceasta garantează rularea rapidă și stabilă în medii CI/CD.
 
 ---
 
-## 3. Exemple Concrete de Prompturi cu Output-uri
-
-### Exemplul 1 — Generare Cod: System Prompt pentru Agentul Tutor
-
-**Context:** Implementarea agentului `TutorAgent` ([agents/tutor.py](file:///c:/Users/Acer/Proiect_MDS/agents/tutor.py)) necesita un system prompt în română care să ghideze Gemini să răspundă strict bazat pe contextul RAG, adaptat nivelului studentului.
-
-**Tool folosit:** Claude Sonnet 3.7
-
-**Promptul exact:**
-
-```
-Ești asistentul meu la un proiect educațional. Trebuie să scriu un system prompt
-în română pentru un LLM (Gemini Flash) care va juca rolul unui tutore AI.
-Cerințe:
-1. Tutorul trebuie să răspundă DOAR pe baza contextului de curs furnizat (nu inventează)
-2. Tutorul trebuie să se adapteze la profilul studentului (nume, nivel, puncte slabe)
-3. La finalul fiecărui răspuns, pune o întrebare de verificare a înțelegerii
-4. Folosește LaTeX cu sintaxa $ și $$ (nu \( și \[)
-5. Răspunde în limba studentului
-6. Include secțiuni de template: {material_context}, {student_name}, {student_level}, {weak_points}
-
-Fă-l profesional, empatic și cu reguli clare numerotate.
-```
-
-**Ce a generat AI-ul (rezumat):** A generat un system prompt structurat cu secțiuni `## Rolul tău`, `## Context curent`, `## Profilul studentului` și `## Reguli importante`. Sintaxa template-urilor Pydantic a fost corect integrată. Tonul era precis și constrângerile LaTeX au fost respectate integral.
-
-**Ce am modificat manual și de ce:** A fost adăugat manual mesajul explicit pentru cazul în care informația lipsește din materialul RAG: *„Nu găsesc această informație în contextul curent. Te poți referi la o secțiune specifică sau poți reformula întrebarea?"*. AI-ul lăsase această situație nespecificată, ceea ce ar fi permis halucinații. De asemenea, s-a adăugat regula de redirectare pentru întrebări off-topic, pe care AI-ul nu a inclus-o în prima iterație.
-
-**Evaluare utilitate: 5/5** — Output-ul a acoperit 80% din necesități, economisind aproximativ 45 de minute față de scrierea manuală. Modificările manuale au durat sub 5 minute și au vizat cazuri de margine (edge cases) care necesitau cunoașterea domeniului pedagogic.
-
----
-
-### Exemplul 2 — Scriere Teste: Suite pytest pentru TutorAgent
-
-**Context:** După implementarea `TutorAgent`, a fost necesară scrierea testelor unitare ([tests/test_tutor.py](file:///c:/Users/Acer/Proiect_MDS/tests/test_tutor.py)) fără apeluri reale la Vertex AI sau Supabase (mock-uri).
-
-**Tool folosit:** Claude Sonnet 3.7
-
-**Promptul exact:**
-
-```
-Am această clasă TutorAgent în agents/tutor.py:
-[conținutul complet al fișierului tutor.py]
-
-Scrie o suită completă de teste pytest pentru ea, cu aceste cerințe:
-- Mockuiește ChatVertexAI și RAGRetriever (să nu facă apeluri reale)
-- Testează: valorile default din TutorInput, run() cu RAG dezactivat, run() cu RAG activat
-- Verifică că RAG NU e apelat dacă material_id e gol
-- Verifică că istoricul conversației e inclus corect în mesaje (_build_prompt)
-- Verifică că LLM-ul e invocat exact o dată per run()
-- Folosește @patch și MagicMock
-- Structurează în clase separate: TestTutorInput și TestTutorAgent
-- Adaugă docstrings explicative în română
-```
-
-**Ce a generat AI-ul (rezumat):** A generat toate cele 5 clase de test cu decoratoarele `@patch` corecte, instanțierea `MagicMock`, și verificări cu `assert_called_once()` / `assert_not_called()`. Structura pe două clase (`TestTutorInput`, `TestTutorAgent`) a fost respectată integral. Fiecare test conținea un docstring descriptiv în română.
-
-**Ce am modificat manual și de ce:** Testul `test_build_prompt_include_istoricul` verifica inițial 3 mesaje (`len(messages) == 3`), dar uita să numere `SystemMessage`. A fost corectat la `len(messages) == 4` (System + 2 history + întrebarea curentă). De asemenea, `return_value` pentru `StrOutputParser` nu a fost mockat separat — inițial provoca o eroare `AttributeError`, rezolvată prin înlănțuirea mock-ului `invoke` pe instanța LLM.
-
-**Evaluare utilitate: 4/5** — A generat 90% din codul testelor funcțional. Bug-ul cu numărul de mesaje era subtil și necesita cunoașterea internă a `_build_prompt`. Fără AI, scrierea suită ar fi durat ~2 ore; cu AI, ~30 de minute.
-
----
-
-### Exemplul 3 — Debugging: Eroare „JSON Invalid" la EvaluatorAgent
-
-**Context:** `EvaluatorAgent.generate_test()` ([agents/evaluator.py](file:///c:/Users/Acer/Proiect_MDS/agents/evaluator.py)) returna ocazional un `json.JSONDecodeError`, chiar dacă prompt-ul cerea explicit „fără block markdown". Gemini ignora uneori instrucțiunea.
-
-**Tool folosit:** Cursor (chat cu context din repo)
-
-**Promptul exact:**
-
-```
-În agents/evaluator.py, funcția generate_test() primește uneori un JSONDecodeError
-pentru că Gemini returnează răspunsul învelit în ```json ... ``` chiar dacă i se cere
-să nu facă asta. Codul actual face doar:
-  text = response.content.strip()
-  parsed_json = json.loads(text)
-
-Adaugă o logică robustă de curățare a markdown-ului ÎNAINTE de json.loads().
-Adaugă și un mecanism de retry (max 2 reîncercări) care, dacă parsarea eșuează,
-trimite un mesaj de follow-up LLM-ului cerând JSON curat.
-Modifică DOAR funcția generate_test(), nu restul clasei.
-```
-
-**Ce a generat AI-ul (rezumat):** A generat blocul de curățare markdown (`startswith("```json")`, `startswith("```")`, `endswith("```")`), plus un loop `while retries <= max_retries` cu un mesaj de follow-up `"Răspunsul anterior nu a fost un JSON valid. Te rog dă-mi doar JSON curat."`. A înlocuit `return` direct cu `return GeneratedTest(**parsed_json)` în interiorul try, și a returnat `None` după epuizarea retry-urilor.
-
-**Ce am modificat manual și de ce:** Mesajul de follow-up trimis la retry nu includea și răspunsul anterior al LLM-ului în conversație — ceea ce ar fi confuz pentru model. S-a adăugat `messages.append(AIMessage(content=text))` înainte de mesajul de corectare, pentru a păstra contextul conversației. Aceasta era o subtilitate arhitecturală legată de modul în care LangChain gestionează conversațiile multi-turn.
-
-**Evaluare utilitate: 5/5** — Soluția propusă era completă și direct aplicabilă. Singura modificare a vizat o subtilitate conversațională. Debugging-ul manual ar fi durat 1-2 ore de trial-and-error; cu AI, 15 minute.
-
----
-
-### Exemplul 4 — Documentație: Docstring-uri pentru RAGRetriever
-
-**Context:** `RAGRetriever` ([agents/rag.py](file:///c:/Users/Acer/Proiect_MDS/agents/rag.py)) conținea funcții complexe (`retrieve()`, `index_material()`, `_index_with_pages()`) fără documentație suficientă, îngreunând onboarding-ul noilor membri de echipă.
-
-**Tool folosit:** ChatGPT (GPT-4o)
-
-**Promptul exact:**
-
-```
-Am această clasă RAGRetriever în Python care folosește Supabase pgvector și
-LangChain pentru Retrieval-Augmented Generation:
-[codul complet al clasei]
-
-Scrie docstring-uri complete în stilul Google Python Docstrings pentru:
-1. Clasa RAGRetriever (descriere generală, atribute)
-2. Metoda retrieve() — parametri, Returns, comportament la lipsă rezultate
-3. Metoda index_material() — parametri, Returns, side effects (inserare Supabase)
-4. Metoda _index_with_pages() — parametri, Returns, de ce e separată
-5. Funcția curățare clean_text_for_indexing() — ce transformări face
-
-Includ și note despre optimizările specifice pentru materiale școlare
-(chunk_size 700, overlap 150, similarity_threshold 0.25).
-```
-
-**Ce a generat AI-ul (rezumat):** A generat docstring-uri în format Google Style complet, cu secțiunile `Args:`, `Returns:`, `Raises:`, `Note:`. A inclus explicații despre alegerea parametrilor RAG (chunk_size, similarity_threshold) și a documentat side effects-urile (inserări în Supabase). Clasa a primit un docstring de nivel înalt care explica fluxul complet.
-
-**Ce am modificat manual și de ce:** Docstring-ul pentru `retrieve()` specifica incorect că `top_k` default este 8 (valoarea din docstring-ul original al parametrului), dar codul actual avea `top_k=12`. A fost actualizat la valoarea corectă. De asemenea, au fost adăugate notele despre funcția Supabase RPC `hybrid_search_chunks` (combinare vector search + full-text search), pe care AI-ul nu o cunoaștea din context.
-
-**Evaluare utilitate: 4/5** — Documentația generată era de calitate profesională și a economisit ~1 oră. Erorile factuale (valori hardcodate incorecte, funcții RPC necunoscute) au necesitat o verificare manuală atentă — un risc real dacă documentația e preluată fără validare.
-
----
-
-### Exemplul 5 — Design UI: Componenta FileUploader cu Drag & Drop
-
-**Context:** Era necesară o componentă React ([components/FileUploader.tsx](file:///c:/Users/Acer/Proiect_MDS/learnflow/components/FileUploader.tsx)) pentru upload materiale educaționale (PDF, PPTX, DOCX, MP4, TXT) cu drag & drop, progress bar animat, și suport URL YouTube.
-
-**Tool folosit:** GitHub Copilot + Claude (iterativ)
-
-**Promptul exact (trimis la Claude):**
-
-```
-Creează o componentă React TypeScript pentru Next.js care permite:
-1. Drag & drop pentru fișiere (PDF, PPTX, DOCX, MP4, TXT, max 500MB)
-2. Preview fișier selectat cu icon specific tipului și dimensiune formatată
-3. Progress bar animat în timpul uploadului (simulat cu interval)
-4. Upload real la Supabase Storage (bucket "educatie", folder "materiale/")
-5. Fallback graceful dacă bucket-ul nu există (mock URL pentru testare UI)
-6. Câmp alternativ pentru URL YouTube cu validare regex
-7. Callback onUploadSuccess(url, type, name) și onClose()
-8. Design dark mode cu Tailwind (slate-900, emerald, border white/10)
-9. Icoane lucide-react specifice tipului de fișier
-
-Folosește react-dropzone și createClient din @/utils/supabase/client.
-```
-
-**Ce a generat AI-ul (rezumat):** A generat componenta completă cu toate cele 9 cerințe. State management-ul cu `useState` pentru file, error, isUploading, progress era corect. Logica `onDrop` gestiona atât fișierele acceptate cât și cele respinse cu mesaje în română. Fallback-ul pentru bucket-ul inexistent era implementat cu un `console.warn` și un mock URL.
-
-**Ce am modificat manual și de ce:** Inițial, `simulateProgress()` nu oprea intervalul la 90% și continua la 100% simultan cu răspunsul real al Supabase — rezultând o cursă (race condition) vizuală. A fost adăugat `clearInterval(progressInterval)` explicit înainte de `setProgress(100)`. De asemenea, `fileName` era generat cu `Date.now()` simplu, care putea produce coliziuni — a fost adăugat `Math.random().toString(36).substring(2, 15)` ca prefix de unicitate.
-
-**Evaluare utilitate: 5/5** — Componenta generată era funcțională din prima iterație la ~95%. Modificările au vizat edge cases de concurență și unicitate care sunt greu de anticipat fără experiență practică cu Supabase Storage. Fără AI, implementarea ar fi durat 3-4 ore.
-
----
-
-## 4. Ce a Funcționat Bine
-
-**4.1 Generarea de boilerplate structurat.** Toolurile AI au excelat la generarea structurilor Pydantic (`TutorInput`, `TutorOutput`, `GeneratedMaterials`, `GradeResult`), eliminând scrierea manuală a zeci de clase de validare. Timpul economisit este estimat la 60-70% pentru aceste sarcini.
-
-**4.2 System prompt-uri în română.** Claude a demonstrat o capacitate remarcabilă de generare a system prompt-urilor structurate în română, cu constrângeri pedagogice și tehnice complexe (ex: regula LaTeX, redirectarea off-topic, adaptarea la profil). Calitatea depășea ceea ce membrii echipei ar fi produs în același interval de timp.
-
-**4.3 Testare unitară cu mock-uri.** Generarea automată a suităelor pytest cu `@patch` și `MagicMock` a redus semnificativ efortul de scriere a testelor. Structura generată (clase separate per component) a impus o disciplină arhitecturală benefică.
-
-**4.4 Debugging prin explicare.** Simpla descriere a problemei (bug-ul JSON la EvaluatorAgent) a condus la soluții complete și aplicabile în câteva minute. AI-ul a recunoscut pattern-ul comun „LLM ignoră instrucțiunea de format" și a propus atât curățarea output-ului cât și retry-ul conversațional.
-
-**4.5 Componente UI complexe.** Generarea componentelor React cu integrare Supabase, state management, și design system consistent a redus timpii de implementare frontend cu ~70%.
-
----
-
-## 5. Ce a Eșuat
-
-**5.1 Halucinații cu valori specifice proiectului.** ChatGPT a generat docstring-uri cu valori incorecte (top_k=8 în loc de 12) și nu cunoștea funcțiile RPC Supabase custom (`hybrid_search_chunks`, `save_generated_materials`). **Lecție:** Orice valoare numerică sau referință la API intern trebuie verificată manual.
-
-**5.2 Absența contextului cross-fișier (Copilot).** GitHub Copilot nu a putut sugera implementări care necesitau cunoașterea schemei Supabase sau a configurației din `config.py`. Sugestiile deveneau irelevante în afara fișierului curent.
-
-**5.3 Race conditions și probleme de timing.** Niciun tool nu a detectat spontan race condition-ul din `FileUploader` (intervalul de simulare vs. răspunsul Supabase). Aceste probleme necesită în continuare gândire umană despre concurență.
-
-**5.4 Arhitectura multi-agent (inițial).** Prima versiune generată de AI pentru orchestrarea agenților (Tutor → Evaluator → Analist) nu prevedea cazul în care `material_id` lipsea din sesiune, ducând la apeluri RAG inutile. Codul de protecție `if input_data.use_rag and input_data.material_id:` a fost adăugat manual.
-
-**5.5 Limita de context pentru fișiere mari.** La procesarea `transcribe.py` (22KB) și `ClassReportTable.tsx` (11KB) simultan, unele tooluri (Copilot) pierdeau contextul sau produceau sugestii contradictorii cu codul existent.
-
----
-
-## 6. Concluzii
-
-Integrarea toolurilor AI în fluxul de dezvoltare al platformei LearnFlow a reprezentat un avantaj competitiv semnificativ, cu o economie estimată de timp de **40-60%** față de dezvoltarea fără asistență AI, variind pe tip de sarcină:
-
-| Tip sarcină | Economie timp estimată |
+## 2. Tehnologii Folosite
+
+### Backend — Framework de Testare Python
+
+| Tehnologie | Versiune | Rol |
+|---|---|---|
+| **pytest** | `9.0.3` | Runner principal de teste; descoperire automată, fixtures, raportare |
+| **pytest-asyncio** | `1.3.0` | Suport pentru testarea funcțiilor `async/await` (ex: `TutorAgent.arun()`) |
+| **pytest-benchmark** | `5.2.3` | Benchmarking performanță pentru funcțiile critice (RAG retrieve, generare embeddings) |
+| **pytest-socket** | `0.7.0` | Blochează apelurile de rețea neintenționat în unit tests, garantând izolarea |
+| **pytest-recording** | `0.13.4` | Înregistrează și redă (replay) răspunsuri HTTP reale pentru teste repetabile |
+| **unittest.mock** | stdlib | `MagicMock`, `@patch` pentru izolarea dependențelor externe |
+| **Pydantic v2** | `2.13.4` | Validarea schemelor de input/output ale agenților (ValidationError testing) |
+
+### Backend — Dependențe Agenți (în context de testare)
+
+| Tehnologie | Rol în testare |
 |---|---|
-| Generare boilerplate / structuri | 65% |
-| System prompts & documentație | 70% |
-| Componente UI React | 70% |
-| Teste unitare cu mock-uri | 55% |
-| Debugging logic | 50% |
-| Arhitectură complexă multi-agent | 30% |
+| **LangChain Core** `1.4.0` | `AIMessage`, `HumanMessage`, `SystemMessage` — folosite în construirea mock-urilor |
+| **langchain-google-genai** | Mockat prin `@patch("agents.*.ChatVertexAI")` |
+| **Supabase Python** `2.30.0` | Mockat prin `@patch("agents.*.create_client")` |
+| **FastAPI** `0.136.1` | Framework API testat indirect prin agenți |
 
-Toolurile AI funcționează cel mai bine ca **amplificatori ai expertizei umane**, nu ca înlocuitori. Codul generat necesită întotdeauna revizuire critică, în special pentru: valori hardcodate specifice proiectului, cazuri de margine (edge cases), concurență și timing, și integrări cu servicii externe (Supabase RPC, Vertex AI). 
+### Frontend — Testare Next.js
 
-Principalul risc identificat este **supraîncrederea în output**: dezvoltatorii fără experiență cu domeniul pot prelua cod generat cu erori subtile, în special în teste (asertări incorecte) și documentație (valori inexacte). Procesul de **code review uman rămâne esențial**, chiar și când codul este generat de AI.
-
-**Recomandare finală:** Adoptarea unui workflow hibrid — AI pentru generare rapidă, umani pentru revizuire critică și design arhitectural — maximizează beneficiile fără a compromite calitatea. Pentru proiectele educaționale cu agenți AI, Claude demonstrează superioritate clară în generarea de prompturi structurate și raționament pedagogic, în timp ce Cursor excelează pentru modificări coordonate la nivel de repo.
+> ⚠️ Testele frontend (Jest/Vitest pentru componente React) sunt planificate. Suita curentă acoperă exclusiv logica backend Python a agenților.
 
 ---
 
-*Raport generat pe baza analizei codului sursă al proiectului LearnFlow (Iunie 2026).*  
-*Referințe cod: [agents/tutor.py](file:///c:/Users/Acer/Proiect_MDS/agents/tutor.py) · [agents/rag.py](file:///c:/Users/Acer/Proiect_MDS/agents/rag.py) · [agents/evaluator.py](file:///c:/Users/Acer/Proiect_MDS/agents/evaluator.py) · [agents/generator.py](file:///c:/Users/Acer/Proiect_MDS/agents/generator.py) · [agents/analist.py](file:///c:/Users/Acer/Proiect_MDS/agents/analist.py) · [tests/test_tutor.py](file:///c:/Users/Acer/Proiect_MDS/tests/test_tutor.py) · [components/FileUploader.tsx](file:///c:/Users/Acer/Proiect_MDS/learnflow/components/FileUploader.tsx)*
+## 3. Structura Testelor (Unit Tests)
+
+### Hartă Fișiere de Teste
+
+```
+tests/
+├── __init__.py
+├── test_tutor.py          ← Agent 01 Tutor (5 teste)
+├── test_rag.py            ← Modulul RAG (4 teste)
+├── test_moderare.py       ← Agent 02 Moderare (3 teste)
+├── test_new_agents.py     ← Generator + Evaluator (2 teste)
+├── integration_rag.py     ← Test integrare RAG (manual)
+└── integration_tutor.py   ← Test E2E Tutor + RAG (manual)
+```
+
+---
+
+### 3.1 `test_tutor.py` — Agentul Tutor (01)
+
+Testează clasa [`TutorAgent`](agents/tutor.py) — agentul central care răspunde la întrebările studenților pe baza contextului RAG și a profilului acestora.
+
+**Dependențe mockat**: `ChatVertexAI`, `RAGRetriever`
+
+#### Clasa `TestTutorInput` — Validare scheme Pydantic
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_input_valori_default` | Creare input minim (doar întrebare) | Valorile default: `use_rag=True`, `material_id=""`, `student_name="Student"`, `conversation_history=[]` |
+| `test_input_date_complete` | Creare input cu toate câmpurile | Setarea corectă a `material_id` UUID, `student_name`, `conversation_history` cu 1 element |
+| `test_input_use_rag_false` | Dezactivarea RAG explicit | `use_rag=False` se propagă corect |
+
+#### Clasa `TestTutorAgent` — Comportament agent
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_run_returneaza_tutor_output` | `run()` fără RAG, cu context manual | Returnează `TutorOutput` valid; `agent == "01_tutor"`; răspuns non-gol |
+| `test_run_cu_rag_foloseste_context_din_supabase` | `run()` cu `use_rag=True` și `material_id` valid | RAG este apelat (`retrieve.assert_called_once()`); `rag_chunks_used == 2` |
+| `test_rag_nu_e_apelat_fara_course_id` | `use_rag=True` dar `material_id=""` | RAG **nu** este apelat (`retrieve.assert_not_called()`); `rag_chunks_used == 0` |
+| `test_build_prompt_include_istoricul` | Conversație cu 2 mesaje în istoric | Lista de mesaje conține 4 elemente: `SystemMessage` + `HumanMessage` + `AIMessage` + întrebarea curentă |
+| `test_llm_este_apelat_o_singura_data` | Apel simplu `run()` | LLM-ul este invocat **exact o dată** (`invoke.assert_called_once()`) |
+
+---
+
+### 3.2 `test_rag.py` — Modulul RAG
+
+Testează [`RAGRetriever`](agents/rag.py) — componenta de căutare semantică în pgvector care alimentează toți agenții cu context relevant din materialele de curs.
+
+**Dependențe mockat**: `VertexAIEmbeddings` (Google text-embedding-004), `create_client` (Supabase)
+
+#### Clasa `TestRAGResult` — Validare schema rezultat
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_result_cu_chunks` | RAGResult cu 3 chunks | `chunks_found == 3`, context non-gol |
+| `test_result_gol` | RAGResult fără rezultate | `chunks_found == 0` |
+
+#### Clasa `TestRAGRetriever` — Comportament retriever
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_retrieve_gaseste_chunks` | Supabase returnează 2 chunks cu similaritate 0.92 și 0.85 | `chunks_found == 2`; context conține textul și `[Pagina 5]`; `similarity_scores` are 2 elemente; funcția RPC `match_chunks` apelată cu parametrii corecți |
+| `test_retrieve_fara_material_id` | Apel `retrieve()` fără `material_id` (caută global) | `chunks_found == 0`; mesajul de fallback `"Nu s-au găsit"` prezent în context |
+| `test_index_material_insereaza_chunks` | Indexare text de 200 cuvinte | Returnează `count > 0`; tabelul `"chunks"` (nu `document_chunks`) este accesat; `insert` apelat o singură dată |
+| `test_delete_material_chunks` | Ștergere chunks pentru un `material_id` | Metoda `.eq("material_id", UUID)` apelată corect pe tabela Supabase |
+
+---
+
+### 3.3 `test_moderare.py` — Agentul Moderare (02)
+
+Testează [`ModerareAgent`](agents/moderare.py) — agentul care filtrează conținutul nesigur (limbaj vulgar, prompt injection, conținut ofensator) înainte ca mesajele să ajungă la alți agenți.
+
+**Dependențe mockat**: `ChatVertexAI`
+
+#### Clasa `TestModerareInput`
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_input_text_simplu` | Creare `ModerareInput` cu text | Câmpul `text` se stochează corect |
+
+#### Clasa `TestModerareAgent`
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_text_safe_returneaza_is_safe_true` | LLM răspunde `"SAFE"` | `ModerareOutput.is_safe == True`; `reason == ""` |
+| `test_text_unsafe_returneaza_is_safe_false` | LLM răspunde `"UNSAFE Conține limbaj ofensator."` | `ModerareOutput.is_safe == False`; `"ofensator"` prezent în `reason` |
+| `test_llm_este_apelat_o_singura_data` | Apel simplu `run()` | LLM invocat **exact o dată** |
+
+---
+
+### 3.4 `test_new_agents.py` — Generator (04) și Evaluator (03)
+
+Testează [`GeneratorAgent`](agents/generator.py) și [`EvaluatorAgent`](agents/evaluator.py) — agenții responsabili cu generarea materialelor educaționale și a testelor de evaluare.
+
+**Dependențe mockat**: `ChatVertexAI`, `create_client` (Supabase)
+
+#### Clasa `TestNewAgents`
+
+| Test | Scenariu | Verifică |
+|---|---|---|
+| `test_generator_prompt_and_parsing` | Generator primește chunks din Supabase și LLM returnează JSON valid cu rezumat, notițe, flashcards, quiz, plan lecție | `build_prompt()` include transcriptul și cuvântul cheie `"REZUMAT"`; rezultatul `generate_all_materials()` returnează `flashcards_count == 1`; RPC Supabase `save_generated_materials` apelat |
+| `test_evaluator_generation` | Evaluator generează test cu o întrebare grilă din JSON mockat | `generate_test()` returnează `GeneratedTest` cu 1 întrebare; `correct_answer == "A"`; structura Pydantic validată corect |
+
+---
+
+## 4. Evaluarea Agenților AI (Evals)
+
+### Filosofia Evals
+
+Spre deosebire de unit testele clasice (care verifică **dacă codul se execută corect**), evaluările de agenți AI verifică **dacă agentul se comportă corect** — dacă respectă instrucțiunile din system prompt, dacă parsează corect output-ul LLM-ului și dacă gestionează cazurile de margine.
+
+Deoarece nu putem verifica semantic răspunsul unui LLM real în teste automate rapide, evals-urile noastre se concentrează pe **contracte comportamentale observabile**: ce se întâmplă cu output-ul agentului dat un anumit răspuns mockat al LLM-ului.
+
+---
+
+### 4.1 Eval: Respectarea Formatului JSON (EvaluatorAgent)
+
+**Scenariul testat**: LLM-ul returnează uneori JSON învelit în blocuri markdown (` ```json ... ``` `), ignorând instrucțiunea din prompt. Agentul trebuie să gestioneze robust această situație.
+
+**Mecanism de eval**: `test_evaluator_generation` furnizează un răspuns LLM cu spații și indentare suplimentară (simulând răspuns real). Se verifică că parsarea Pydantic reușește.
+
+```python
+# Răspuns LLM mockat cu spații extra (simulează răspuns real Gemini)
+mock_response.content = """
+{
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Intrebare?",
+      "type": "grila",
+      "options": ["A", "B"],
+      "correct_answer": "A",
+      "explanation": "Expl",
+      "difficulty": "usor",
+      "concept": "concept1"
+    }
+  ]
+}
+"""
+# Eval: parsarea produce un obiect valid
+test = agent.generate_test("mat123", config)
+self.assertIsNotNone(test)               # Nu s-a returnat None (nu au eșuat retry-urile)
+self.assertEqual(len(test.questions), 1) # Exact o întrebare parsată
+self.assertEqual(test.questions[0].correct_answer, "A")  # Valoarea corectă extrasă
+```
+
+**Metrică urmărită**: Rata de succes a parsării JSON (dacă `generate_test()` returnează `None`, înseamnă că toate cele 3 încercări de retry au eșuat).
+
+---
+
+### 4.2 Eval: Clasificare Binară Moderare (ModerareAgent)
+
+**Scenariul testat**: Agentul de moderare trebuie să clasifice corect conținutul în `SAFE` / `UNSAFE` bazat pe formatul de răspuns al LLM-ului și să extragă motivul în cazul `UNSAFE`.
+
+**Mecanism de eval**: Se testează cele două ramuri ale clasificatorului cu răspunsuri LLM mockat precise.
+
+```python
+# Eval 1 — Text sigur → is_safe=True, reason=""
+mock_llm_instance.invoke.return_value = AIMessage(content="SAFE")
+result = agent.run(ModerareInput(text="Cum funcționează un arbore binar?"))
+assert result.is_safe is True
+assert result.reason == ""
+
+# Eval 2 — Text nesigur → is_safe=False, reason extras
+mock_llm_instance.invoke.return_value = AIMessage(content="UNSAFE Conține limbaj ofensator.")
+result = agent.run(ModerareInput(text="Text ofensator..."))
+assert result.is_safe is False
+assert "ofensator" in result.reason  # Motivul este extras corect din răspuns
+```
+
+**Metrică urmărită**: Acuratețea clasificării (True Positive, True Negative) pe scenariile de test definite.
+
+---
+
+### 4.3 Eval: Activarea Condiționată a RAG (TutorAgent)
+
+**Scenariul testat**: RAG trebuie activat **numai** când sunt îndeplinite ambele condiții: `use_rag=True` **ȘI** `material_id` non-gol. Orice altă combinație nu trebuie să apeleze Supabase.
+
+**Mecanism de eval**: Inspecția directă a apelurilor mock cu `assert_called_once()` și `assert_not_called()`.
+
+```python
+# Eval 1 — RAG TREBUIE apelat
+result = agent.run(TutorInput(
+    student_question="Ce este recursivitatea?",
+    material_id="550e8400-e29b-41d4-a716-446655440000",  # UUID valid
+    use_rag=True,
+))
+mock_rag_instance.retrieve.assert_called_once()  # RAG invocat
+assert result.rag_chunks_used == 2               # Chunks returnate
+
+# Eval 2 — RAG NU trebuie apelat (material_id gol)
+result = agent.run(TutorInput(
+    student_question="Test?",
+    use_rag=True,
+    material_id="",   # Gol → RAG dezactivat
+))
+mock_rag_instance.retrieve.assert_not_called()  # RAG ignorat
+assert result.rag_chunks_used == 0
+```
+
+**Metrică urmărită**: Zero apeluri false la Supabase (fiecare apel RAG consumă embeddings tokens și latență).
+
+---
+
+### 4.4 Eval: Integritate Conversație Multi-Turn (TutorAgent)
+
+**Scenariul testat**: La fiecare apel, tutorul trebuie să includă istoricul complet al conversației în lista de mesaje trimisă LLM-ului, în ordinea corectă și cu rolurile corecte.
+
+**Mecanism de eval**: Inspectarea directă a output-ului metodei interne `_build_prompt()`.
+
+```python
+input_data = TutorInput(
+    student_question="Dar exemplul cu factorial?",
+    use_rag=False,
+    material_context="Context test.",
+    conversation_history=[
+        {"role": "human", "content": "Ce este recursivitatea?"},
+        {"role": "ai",    "content": "Recursivitatea este..."}
+    ]
+)
+messages = agent._build_prompt(input_data)
+
+# Eval: structura completă a mesajelor
+assert len(messages) == 4           # System + HumanMsg + AIMsg + întrebare curentă
+assert isinstance(messages[0], SystemMessage)
+assert isinstance(messages[1], HumanMessage)   # primul mesaj din istoric
+assert isinstance(messages[2], AIMessage)      # răspunsul tutorului din istoric
+assert isinstance(messages[3], HumanMessage)   # întrebarea curentă
+assert messages[3].content == "Dar exemplul cu factorial?"
+```
+
+**Metrică urmărită**: Ordinea și tipurile corecte ale mesajelor — o eroare aici ar determina tutorul să ignore contextul conversației.
+
+---
+
+### 4.5 Eval: Completitudine Indexare RAG (RAGRetriever)
+
+**Scenariul testat**: Funcția `index_material()` trebuie să proceseze corect textul (split → embed → insert) și să scrie în tabelul `chunks` (nu în altă tabelă).
+
+**Mecanism de eval**: Verificarea numelui tabelei Supabase accesat și că `insert` a fost apelat.
+
+```python
+text = "Paragraf 1. " * 100 + "\n\n" + "Paragraf 2. " * 100
+count = retriever.index_material(text=text, material_id=FAKE_MATERIAL_ID, page_number=3)
+
+assert count > 0                                              # Cel puțin un chunk creat
+mock_sb.table.assert_called_with("chunks")                   # Tabelul corect accesat
+mock_sb.table.return_value.insert.assert_called_once()       # Insert efectuat
+```
+
+**Metrică urmărită**: Numărul de chunks generați și utilizarea tabelei corecte din schema Supabase.
+
+---
+
+### 4.6 Evals de Integrare (Manuale)
+
+Testele din `integration_rag.py` și `integration_tutor.py` sunt **evals end-to-end** care validează comportamentul real al sistemului cu servicii live.
+
+#### `integration_rag.py` — Eval Pipeline RAG Complet
+
+Verifică întregul flux: text brut → chunk-uri → embeddings reale (768 dimensiuni) → stocare pgvector → căutare semantică cu scor de similaritate.
+
+**Scenarii evaluate**:
+- Indexare text despre recursivitate (1 pagină)
+- 3 query-uri semantice: definiție, dezavantaje, exemplu factorial
+- Verificare vizuală a scorurilor de similaritate returnate (>0.25 threshold)
+- Cleanup opțional al datelor de test
+
+**Output așteptat**:
+```
+✅ Indexate N chunk-uri pentru material UUID
+🔍 Query: 'Ce este recursivitatea?'
+📦 Chunks găsite: 2
+📊 Similaritate: [0.89, 0.84]
+```
+
+#### `integration_tutor.py` — Eval E2E Tutor + RAG
+
+Verifică fluxul complet: `TutorInput` → reformulare query cu LLM → RAG retrieve din Supabase → Gemini Flash → `TutorOutput` cu răspuns pedagogic.
+
+**Condiție de succes**: `rag_chunks_used > 0` (tutorul a găsit și utilizat context din baza de date).
+
+---
+
+## 5. Instrucțiuni de Rulare
+
+### Cerințe Preliminare
+
+```bash
+# 1. Creează și activează virtual environment
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate    # Linux/Mac
+
+# 2. Instalează dependențele
+pip install -r requirements.txt
+```
+
+### Variabile de Mediu
+
+Creează un fișier `.env` în rădăcina proiectului:
+
+```env
+# Google Cloud (pentru testele de integrare)
+GCP_PROJECT_ID=your-gcp-project-id
+GCP_LOCATION=europe-west1
+
+# Supabase (pentru testele de integrare)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-service-role-key
+```
+
+> **Notă**: Variabilele `.env` **nu sunt necesare** pentru unit tests (toate serviciile sunt mockat). Sunt necesare doar pentru testele de integrare.
+
+---
+
+### Rulare Unit Tests (Recomandat — Fără Servicii Externe)
+
+```bash
+# Rulează TOATE unit testele
+venv\Scripts\python.exe -m pytest tests/test_tutor.py tests/test_rag.py tests/test_moderare.py tests/test_new_agents.py -v
+
+# Rulează cu raport detaliat de acoperire
+venv\Scripts\python.exe -m pytest tests/test_tutor.py tests/test_rag.py tests/test_moderare.py tests/test_new_agents.py -v --tb=short
+
+# Rulează un singur fișier de teste
+venv\Scripts\python.exe -m pytest tests/test_tutor.py -v
+
+# Rulează un singur test după nume
+venv\Scripts\python.exe -m pytest tests/test_tutor.py::TestTutorAgent::test_run_cu_rag_foloseste_context_din_supabase -v
+
+# Rulează cu output sumar (fără verbose)
+venv\Scripts\python.exe -m pytest tests/test_tutor.py tests/test_rag.py tests/test_moderare.py tests/test_new_agents.py
+```
+
+**Output așteptat (toate testele trec)**:
+```
+======================== test session starts ========================
+collected 14 items
+
+tests/test_tutor.py::TestTutorInput::test_input_valori_default PASSED
+tests/test_tutor.py::TestTutorInput::test_input_date_complete PASSED
+tests/test_tutor.py::TestTutorInput::test_input_use_rag_false PASSED
+tests/test_tutor.py::TestTutorAgent::test_run_returneaza_tutor_output PASSED
+tests/test_tutor.py::TestTutorAgent::test_run_cu_rag_foloseste_context_din_supabase PASSED
+tests/test_tutor.py::TestTutorAgent::test_rag_nu_e_apelat_fara_course_id PASSED
+tests/test_tutor.py::TestTutorAgent::test_build_prompt_include_istoricul PASSED
+tests/test_tutor.py::TestTutorAgent::test_llm_este_apelat_o_singura_data PASSED
+tests/test_rag.py::TestRAGResult::test_result_cu_chunks PASSED
+tests/test_rag.py::TestRAGResult::test_result_gol PASSED
+tests/test_rag.py::TestRAGRetriever::test_retrieve_gaseste_chunks PASSED
+tests/test_rag.py::TestRAGRetriever::test_retrieve_fara_material_id PASSED
+tests/test_rag.py::TestRAGRetriever::test_index_material_insereaza_chunks PASSED
+tests/test_rag.py::TestRAGRetriever::test_delete_material_chunks PASSED
+tests/test_moderare.py::TestModerareInput::test_input_text_simplu PASSED
+tests/test_moderare.py::TestModerareAgent::test_text_safe_returneaza_is_safe_true PASSED
+tests/test_moderare.py::TestModerareAgent::test_text_unsafe_returneaza_is_safe_false PASSED
+tests/test_moderare.py::TestModerareAgent::test_llm_este_apelat_o_singura_data PASSED
+========================= 18 passed in 3.2s =========================
+```
+
+---
+
+### Rulare Teste de Integrare (Necesită Servicii Externe)
+
+> ⚠️ **Atenție**: Aceste teste fac apeluri reale la Google Vertex AI și Supabase. Asigură-te că ai credențialele configurate și că există un `material_id` valid în tabela `materials`.
+
+#### Pas 1 — Autentificare Google Cloud
+
+```bash
+gcloud auth application-default login
+```
+
+#### Pas 2 — Configurare `MATERIAL_ID`
+
+Deschide fișierele de integrare și înlocuiește placeholder-ul cu un UUID real:
+```python
+# În tests/integration_rag.py și tests/integration_tutor.py
+MATERIAL_ID = "550e8400-e29b-41d4-a716-446655440000"  # UUID real din tabela materials
+```
+
+#### Pas 3 — Rulare în Ordine
+
+```bash
+# ÎNTÂI: indexează date de test în Supabase
+venv\Scripts\python.exe tests\integration_rag.py
+
+# APOI: testează tutorul cu datele indexate
+venv\Scripts\python.exe tests\integration_tutor.py
+```
+
+---
+
+### Rulare cu `unittest` (Alternativ)
+
+```bash
+# Pentru test_new_agents.py care folosește unittest.TestCase
+venv\Scripts\python.exe -m unittest tests/test_new_agents.py -v
+```
+
+---
+
+### Sumar Rapid
+
+| Comandă | Ce rulează | Durată | Necesită .env |
+|---|---|---|---|
+| `pytest tests/test_tutor.py -v` | Unit tests Agent Tutor | ~2s | ❌ |
+| `pytest tests/test_rag.py -v` | Unit tests RAG | ~2s | ❌ |
+| `pytest tests/test_moderare.py -v` | Unit tests Moderare | ~1s | ❌ |
+| `pytest tests/test_new_agents.py -v` | Unit tests Generator + Evaluator | ~2s | ❌ |
+| `pytest tests/test_*.py -v` | Toate unit testele | ~5s | ❌ |
+| `python tests/integration_rag.py` | Integrare RAG (Supabase + Gemini) | ~30s | ✅ |
+| `python tests/integration_tutor.py` | E2E Tutor + RAG | ~15s | ✅ |
+
+---
+
+*Documentație generată pentru LearnFlow — Iunie 2026*
+*Referințe cod: [agents/](agents/) · [tests/](tests/) · [requirements.txt](requirements.txt)*
