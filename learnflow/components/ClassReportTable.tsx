@@ -39,9 +39,10 @@ type SortDirection = 'asc' | 'desc';
 
 interface ClassReportTableProps {
   data?: StudentReport[];
+  onKickStudent?: (studentId: string, studentName: string) => void;
 }
 
-export default function ClassReportTable({ data = MOCK_STUDENTS }: ClassReportTableProps) {
+export default function ClassReportTable({ data = MOCK_STUDENTS, onKickStudent }: ClassReportTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyAtRisk, setShowOnlyAtRisk] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection } | null>({ key: 'name', direction: 'asc' });
@@ -182,6 +183,9 @@ export default function ClassReportTable({ data = MOCK_STUDENTS }: ClassReportTa
               >
                 Trend
               </th>
+              <th scope="col" className="px-6 py-4 relative">
+                <span className="sr-only">Acțiuni</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5 bg-transparent">
@@ -230,6 +234,17 @@ export default function ClassReportTable({ data = MOCK_STUDENTS }: ClassReportTa
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center flex justify-center">
                     {renderTrend(student.trend)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {onKickStudent && (
+                      <button
+                        onClick={() => onKickStudent(student.id, student.name)}
+                        className="text-red-400 hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-500/10"
+                        title="Elimină elevul din clasă"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-minus"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

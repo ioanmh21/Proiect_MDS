@@ -17,29 +17,26 @@ import {
   Plus
 } from 'lucide-react';
 
-// Mock Data for other sections
-
-const studentsAtRisk = [
-  { id: 1, name: 'Andrei Popescu', issue: 'Activitate scăzută (0 conectări în 5 zile)', severity: 'high' },
-  { id: 2, name: 'Maria Ionescu', issue: 'Scor mediu sub 5 la ultimele 3 teste', severity: 'critical' },
-  { id: 3, name: 'Cristian Vasile', issue: 'Teme nepredate (2 consecutive)', severity: 'medium' },
-];
-
-const chartData = [45, 52, 38, 65, 78, 62, 85, 90, 88, 95];
+// Datele mock au fost eliminate. Toate datele vin acum din API per clasă.
 
 export default function TeacherDashboard() {
   const router = useRouter();
   const supabase = createClient();
   const [materials, setMaterials] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [reportData, setReportData] = useState<{ students: any[], alerts: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
 
   useEffect(() => {
-    async function fetchMaterials() {
+    async function fetchData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
-        const { data, error } = await supabase
+        // Fetch materials
+        const { data: mats } = await supabase
           .from('materials')
           .select('id, title, type, status, created_at')
           .eq('teacher_id', user.id)
@@ -47,17 +44,46 @@ export default function TeacherDashboard() {
           .order('created_at', { ascending: false })
           .limit(5);
 
-        if (data) {
-          setMaterials(data);
+        if (mats) setMaterials(mats);
+
+        // Fetch classes
+        const { data: cls } = await supabase
+          .from('classes')
+          .select('id, name')
+          .eq('teacher_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (cls && cls.length > 0) {
+          setClasses(cls);
+          setSelectedClassId(cls[0].id);
         }
       } catch (error) {
-        console.error('Error fetching materials:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchMaterials();
+    fetchData();
   }, [supabase]);
+
+  useEffect(() => {
+    if (!selectedClassId) return;
+    async function fetchReports() {
+      setIsLoadingReports(true);
+      try {
+        const res = await fetch(`/api/classes/${selectedClassId}/reports`);
+        if (res.ok) {
+          const data = await res.json();
+          setReportData(data);
+        }
+      } catch (error) {
+        console.error("Error fetching reports", error);
+      } finally {
+        setIsLoadingReports(false);
+      }
+    }
+    fetchReports();
+  }, [selectedClassId]);
 
   const handleAction = (message: string) => {
     alert(message);
@@ -158,40 +184,55 @@ export default function TeacherDashboard() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-emerald-400" />
-                Progres Clasa 10A (Ultimele 10 teste)
+                Progres Claselor (Scoruri Medii / Elev)
               </h2>
-              <select className="bg-white/5 border border-white/10 text-sm text-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-purple-500">
-                <option>Matematică</option>
-                <option>Informatică</option>
+              <select 
+                className="bg-white/5 border border-white/10 text-sm text-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-purple-500 max-w-[200px]"
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
+              >
+                {classes.length === 0 && <option value="">Fără clase</option>}
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
             </div>
             
             <div className="h-64 flex items-end justify-between gap-2 pt-4 relative">
-              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-                <div className="border-b border-slate-500 w-full h-0"></div>
-                <div className="border-b border-slate-500 w-full h-0"></div>
-                <div className="border-b border-slate-500 w-full h-0"></div>
-                <div className="border-b border-slate-500 w-full h-0"></div>
-              </div>
-              
-              {chartData.map((val, i) => (
-                <div key={i} className="relative group w-full flex justify-center h-full items-end">
-                  <div 
-                    className="w-full max-w-[40px] bg-gradient-to-t from-purple-600/80 to-blue-500/80 rounded-t-sm hover:from-purple-500 hover:to-blue-400 transition-all duration-300 cursor-pointer border-t border-x border-white/20"
-                    style={{ height: `${val}%` }}
-                  >
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-white text-xs px-2 py-1 rounded shadow-xl transition-opacity pointer-events-none whitespace-nowrap">
-                      Scor: {val}%
-                    </div>
+              {isLoadingReports ? (
+                 <div className="absolute inset-0 flex items-center justify-center text-slate-400">Se calculează datele clasei...</div>
+              ) : !reportData || reportData.students.length === 0 ? (
+                 <div className="absolute inset-0 flex items-center justify-center text-slate-400">Nu există date suficiente pentru această clasă.</div>
+              ) : (
+                <>
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+                    <div className="border-b border-slate-500 w-full h-0"></div>
+                    <div className="border-b border-slate-500 w-full h-0"></div>
+                    <div className="border-b border-slate-500 w-full h-0"></div>
+                    <div className="border-b border-slate-500 w-full h-0"></div>
                   </div>
-                </div>
-              ))}
+                  
+                  {reportData.students.slice(0, 15).map((student: any, i: number) => (
+                    <div key={student.id} className="relative group w-full flex justify-center h-full items-end">
+                      <div 
+                        className="w-full max-w-[40px] bg-gradient-to-t from-purple-600/80 to-blue-500/80 rounded-t-sm hover:from-purple-500 hover:to-blue-400 transition-all duration-300 cursor-pointer border-t border-x border-white/20"
+                        style={{ height: `${student.averageScore || 5}%` }}
+                      >
+                        <div className="opacity-0 group-hover:opacity-100 absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 border border-white/10 text-white text-xs px-2 py-1 rounded shadow-xl transition-opacity pointer-events-none whitespace-nowrap z-20 flex flex-col items-center">
+                          <span className="font-semibold">{student.name}</span>
+                          <span className="text-blue-300">{student.averageScore}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
-            <div className="flex justify-between mt-4 text-xs text-slate-400 font-medium px-2">
-              <span>Test 1</span>
-              <span>Test 5</span>
-              <span>Test 10</span>
-            </div>
+            {!isLoadingReports && reportData && reportData.students.length > 0 && (
+              <div className="flex justify-between mt-4 text-xs text-slate-400 font-medium px-2">
+                <span>Elevi ({Math.min(reportData.students.length, 15)})</span>
+              </div>
+            )}
           </section>
         </div>
 
@@ -206,33 +247,49 @@ export default function TeacherDashboard() {
               Elevi cu risc
             </h2>
 
-            <div className="space-y-4 relative z-10">
-              {studentsAtRisk.map((student) => (
-                <div key={student.id} className="bg-black/20 border border-white/5 rounded-xl p-4 hover:border-red-500/30 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="font-medium text-slate-200">{student.name}</div>
-                    <span className={`w-2 h-2 rounded-full mt-1.5 ${
-                      student.severity === 'critical' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 
-                      student.severity === 'high' ? 'bg-orange-500' : 'bg-amber-500'
-                    }`} />
-                  </div>
-                  <p className="text-sm text-slate-400 leading-snug">{student.issue}</p>
-                  <button 
-                    onClick={() => handleAction(`Mesaj trimis către ${student.name}`)}
-                    className="mt-3 text-xs font-semibold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
-                  >
-                    Contactează elevul <LayoutDashboard className="w-3 h-3 rotate-180" />
-                  </button>
+            <div className="space-y-4 relative z-10 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {isLoadingReports ? (
+                <div className="text-center py-8 text-slate-400">Se încarcă alertele...</div>
+              ) : !reportData || reportData.alerts.length === 0 ? (
+                <div className="bg-black/20 border border-emerald-500/20 rounded-xl p-4 text-center">
+                  <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                  <div className="font-medium text-emerald-100">Clasă în regulă!</div>
+                  <p className="text-sm text-emerald-400/70">Niciun elev nu are alerte critice momentan.</p>
                 </div>
-              ))}
+              ) : (
+                reportData.alerts.slice(0, 5).map((alert: any) => (
+                  <div key={alert.id} className={`bg-black/20 border rounded-xl p-4 transition-colors ${
+                    alert.severity === 'high' ? 'border-red-500/30 hover:border-red-500/50' :
+                    alert.severity === 'medium' ? 'border-orange-500/30 hover:border-orange-500/50' :
+                    'border-amber-500/30 hover:border-amber-500/50'
+                  }`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-medium text-slate-200">{alert.studentName}</div>
+                      <span className={`w-2 h-2 rounded-full mt-1.5 ${
+                        alert.severity === 'high' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 
+                        alert.severity === 'medium' ? 'bg-orange-500' : 'bg-amber-500'
+                      }`} />
+                    </div>
+                    <p className="text-sm text-slate-400 leading-snug">{alert.reason}</p>
+                    <button 
+                      onClick={() => handleAction(`Deschide profilul pentru ${alert.studentName}...`)}
+                      className="mt-3 text-xs font-semibold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+                    >
+                      Detalii elev <LayoutDashboard className="w-3 h-3 rotate-180" />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
             
-            <button 
-              onClick={() => handleAction("Se generează raportul complet...")}
-              className="w-full mt-5 py-2.5 rounded-lg border border-red-500/30 text-red-400 font-medium text-sm hover:bg-red-500/10 transition-colors"
-            >
-              Vezi raport complet
-            </button>
+            {classes.length > 0 && selectedClassId && (
+              <button 
+                onClick={() => router.push(`/dashboard/profesor/clase/${selectedClassId}`)}
+                className="w-full mt-5 py-2.5 rounded-lg border border-red-500/30 text-red-400 font-medium text-sm hover:bg-red-500/10 transition-colors"
+              >
+                Vezi raportul complet al clasei
+              </button>
+            )}
           </section>
 
           {/* Quick Actions */}

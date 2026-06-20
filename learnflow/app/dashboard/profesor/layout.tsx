@@ -23,7 +23,6 @@ function ProfesorLayoutContent({ children }: { children: React.ReactNode }) {
     { id: '/dashboard/profesor', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { id: '/dashboard/profesor/clase', label: 'Clase & Elevi', icon: Users, exact: false },
     { id: '/dashboard/profesor/materiale', label: 'Materiale', icon: FileText, exact: false },
-    { id: '/dashboard/profesor/rapoarte', label: 'Rapoarte', icon: BarChart3, exact: false },
   ];
 
   const handleSettings = () => {

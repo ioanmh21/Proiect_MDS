@@ -166,11 +166,11 @@ Returnează DOAR întrebarea reformulată, fără ghilimele sau alte explicații
         rag_chunks = 0
 
         # RAG: aduce context relevant din Supabase dacă e activat
-        if input_data.use_rag and input_data.material_id:
+        if input_data.use_rag:
             search_query = self._rewrite_query_with_history(input_data)
             rag_result = self.rag.retrieve(
                 query=search_query,
-                material_id=input_data.material_id,
+                material_id=input_data.material_id or None,
             )
             input_data = input_data.model_copy(
                 update={"material_context": rag_result.context}
@@ -191,11 +191,11 @@ Returnează DOAR întrebarea reformulată, fără ghilimele sau alte explicații
         """Versiunea async (pentru FastAPI / streaming)."""
         rag_chunks = 0
 
-        if input_data.use_rag and input_data.material_id:
+        if input_data.use_rag:
             search_query = await self._arewrite_query_with_history(input_data)
             rag_result = self.rag.retrieve(
                 query=search_query,
-                material_id=input_data.material_id,
+                material_id=input_data.material_id or None,
             )
             input_data = input_data.model_copy(
                 update={"material_context": rag_result.context}
