@@ -70,3 +70,22 @@
 **Ca** admin,  
 **vreau** să pot gestiona utilizatorii și cursurile din platforma,  
 **astfel încât** să mențin ordinea și accesul corect pentru fiecare rol.
+
+---
+
+## Teste de Integrare
+
+Pentru a rula testele de integrare (care fac apeluri reale la baza de date și la Gemini):
+
+1. Creează fișierul `learnflow/.env.test` și completează variabilele de mediu:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL="..."
+   SUPABASE_SERVICE_ROLE_KEY="..."
+   TEST_USER_ID="00000000-0000-0000-0000-00000000test"
+   ```
+2. Rulează comanda de integrare din folderul `learnflow`:
+   ```bash
+   cd learnflow
+   npm run test:integration
+   ```
+*Atenție: Scripturile de setup din teste vor șterge automat orice date asociate cu `TEST_USER_ID` înainte și după rularea suitei.*

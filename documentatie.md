@@ -93,8 +93,8 @@ tests/
 ├── __init__.py
 ├── test_tutor.py          ← Agent 01 Tutor (5 teste)
 ├── test_rag.py            ← Modulul RAG (4 teste)
-├── test_moderare.py       ← Agent 02 Moderare (3 teste)
-├── test_new_agents.py     ← Generator + Evaluator (2 teste)
+├── test_moderare.py       ← Agent 02 Moderare (4 teste)
+├── test_new_agents.py     ← Generator + Evaluator (5 teste)
 ├── integration_rag.py     ← Test integrare RAG (manual)
 └── integration_tutor.py   ← Test E2E Tutor + RAG (manual)
 ```
@@ -144,9 +144,9 @@ Testează [`RAGRetriever`](agents/rag.py) — componenta de căutare semantică 
 
 | Test | Scenariu | Verifică |
 |---|---|---|
-| `test_retrieve_gaseste_chunks` | Supabase returnează 2 chunks cu similaritate 0.92 și 0.85 | `chunks_found == 2`; context conține textul și `[Pagina 5]`; `similarity_scores` are 2 elemente; funcția RPC `match_chunks` apelată cu parametrii corecți |
+| `test_retrieve_gaseste_chunks` | Supabase returnează 2 chunks cu similaritate 0.92 și 0.85 | `chunks_found == 2`; context conține textul și `Pagina 5`; `similarity_scores` are 2 elemente; funcția RPC `hybrid_search_chunks` apelată cu parametrii corecți (`query_text`, `query_embedding`, `match_count=12`, `filter_material_id`) |
 | `test_retrieve_fara_material_id` | Apel `retrieve()` fără `material_id` (caută global) | `chunks_found == 0`; mesajul de fallback `"Nu s-au găsit"` prezent în context |
-| `test_index_material_insereaza_chunks` | Indexare text de 200 cuvinte | Returnează `count > 0`; tabelul `"chunks"` (nu `document_chunks`) este accesat; `insert` apelat o singură dată |
+| `test_index_material_insereaza_chunks` | Indexare text de 200 cuvinte (fără `page_map`) | Returnează `count > 0`; tabelul `"chunks"` (nu `document_chunks`) este accesat; `insert` apelat o singură dată |
 | `test_delete_material_chunks` | Ștergere chunks pentru un `material_id` | Metoda `.eq("material_id", UUID)` apelată corect pe tabela Supabase |
 
 ---
@@ -183,8 +183,11 @@ Testează [`GeneratorAgent`](agents/generator.py) și [`EvaluatorAgent`](agents/
 
 | Test | Scenariu | Verifică |
 |---|---|---|
-| `test_generator_prompt_and_parsing` | Generator primește chunks din Supabase și LLM returnează JSON valid cu rezumat, notițe, flashcards, quiz, plan lecție | `build_prompt()` include transcriptul și cuvântul cheie `"REZUMAT"`; rezultatul `generate_all_materials()` returnează `flashcards_count == 1`; RPC Supabase `save_generated_materials` apelat |
+| `test_generator_prompt_and_parsing` | Generator face 2 apeluri LLM (analiză + generare), Supabase returnează chunks | `build_analysis_prompt()` include transcriptul; `build_generation_prompt()` include `rezumat`; LLM apelat de **2 ori**; RPC `save_generated_materials` apelat; `flashcards_count == 1` |
+| `test_generator_ridica_eroare_fara_chunks` | Material fără chunk-uri în Supabase | `ValueError` ridicat cu mesajul `"nu are chunk-uri"` |
 | `test_evaluator_generation` | Evaluator generează test cu o întrebare grilă din JSON mockat | `generate_test()` returnează `GeneratedTest` cu 1 întrebare; `correct_answer == "A"`; structura Pydantic validată corect |
+| `test_evaluator_json_cu_markdown_blocks` | LLM returnează JSON în bloc markdown (\`\`\`json...\`\`\`) | Blocul markdown eliminat; JSON parsat corect; `concept == "OOP"` |
+| `test_evaluator_returneaza_none_la_json_invalid` | LLM dă text invalid la toate retry-urile | `generate_test()` returnează `None` (toate cele 3 încercări au eșuat) |
 
 ---
 
@@ -421,7 +424,7 @@ venv\Scripts\python.exe -m pytest tests/test_tutor.py tests/test_rag.py tests/te
 **Output așteptat (toate testele trec)**:
 ```
 ======================== test session starts ========================
-collected 14 items
+collected 23 items
 
 tests/test_tutor.py::TestTutorInput::test_input_valori_default PASSED
 tests/test_tutor.py::TestTutorInput::test_input_date_complete PASSED
@@ -441,7 +444,12 @@ tests/test_moderare.py::TestModerareInput::test_input_text_simplu PASSED
 tests/test_moderare.py::TestModerareAgent::test_text_safe_returneaza_is_safe_true PASSED
 tests/test_moderare.py::TestModerareAgent::test_text_unsafe_returneaza_is_safe_false PASSED
 tests/test_moderare.py::TestModerareAgent::test_llm_este_apelat_o_singura_data PASSED
-========================= 18 passed in 3.2s =========================
+tests/test_new_agents.py::TestNewAgents::test_evaluator_generation PASSED
+tests/test_new_agents.py::TestNewAgents::test_evaluator_json_cu_markdown_blocks PASSED
+tests/test_new_agents.py::TestNewAgents::test_evaluator_returneaza_none_la_json_invalid PASSED
+tests/test_new_agents.py::TestNewAgents::test_generator_prompt_and_parsing PASSED
+tests/test_new_agents.py::TestNewAgents::test_generator_ridica_eroare_fara_chunks PASSED
+========================= 23 passed in 3.79s =========================
 ```
 
 ---
@@ -489,15 +497,53 @@ venv\Scripts\python.exe -m unittest tests/test_new_agents.py -v
 
 | Comandă | Ce rulează | Durată | Necesită .env |
 |---|---|---|---|
-| `pytest tests/test_tutor.py -v` | Unit tests Agent Tutor | ~2s | ❌ |
-| `pytest tests/test_rag.py -v` | Unit tests RAG | ~2s | ❌ |
-| `pytest tests/test_moderare.py -v` | Unit tests Moderare | ~1s | ❌ |
-| `pytest tests/test_new_agents.py -v` | Unit tests Generator + Evaluator | ~2s | ❌ |
-| `pytest tests/test_*.py -v` | Toate unit testele | ~5s | ❌ |
+| `pytest tests/test_tutor.py -v` | Unit tests Agent Tutor (5 teste) | ~2s | ❌ |
+| `pytest tests/test_rag.py -v` | Unit tests RAG (4 teste) | ~2s | ❌ |
+| `pytest tests/test_moderare.py -v` | Unit tests Moderare (4 teste) | ~1s | ❌ |
+| `pytest tests/test_new_agents.py -v` | Unit tests Generator + Evaluator (5 teste) | ~2s | ❌ |
+| `pytest tests/test_*.py -v` | Toate unit testele (23 teste) | ~4s | ❌ |
 | `python tests/integration_rag.py` | Integrare RAG (Supabase + Gemini) | ~30s | ✅ |
 | `python tests/integration_tutor.py` | E2E Tutor + RAG | ~15s | ✅ |
 
 ---
 
+## 7. Frontend — Testare Next.js (TypeScript) & AI Evals
+
+Proiectul conține și un modul complex de teste unitare și evaluări automate cu AI (Evals) pentru logica agenților mutată în frontend/backend-ul Next.js (`lib/agents/`).
+
+### 7.1 Unit Tests (Jest + ts-jest)
+Sistemul cuprinde 63 de teste Jest complet izolate (mock pe `@google/generative-ai` și `@supabase/supabase-js`), acoperind:
+- **TutorAgent** (`tutor-agent.test.ts`): 25 teste care validează generarea de răspunsuri, detectarea conceptelor de revizuit (flag-ul `needsReview` la 3 repetiții), construirea prompturilor cu date de profil și RAG, propagarea erorilor Gemini.
+- **EvaluatorAgent** (`evaluator-agent.test.ts`): 38 teste care validează parsarea robustă de JSON, corectarea răspunsurilor (inclusiv extragerea conceptelor greșite) și mecanismul de *Retry Logic* (reapelarea LLM-ului când formatul e invalid).
+
+**Rulare:**
+```bash
+cd learnflow
+npm test
+```
+
+### 7.2 AI Evals (Evaluarea Calitativă a Agenților)
+Pe lângă validarea structurală, am implementat 3 scripturi de tip AI Evals în folderul `learnflow/evals/`:
+1. **Tutor Eval (`tutor-eval.ts`)**: Măsoară calitatea răspunsurilor TutorAgent pe un dataset de 10 QA-uri bazate pe un RAG real. Un al doilea apel Gemini acționează ca "AI Judge", dând o notă de la 1 la 5 cu justificare.
+2. **Hallucination Eval (`hallucination-eval.ts`)**: Măsoară rata de halucinații a Material Generator-ului. Se generează flashcards dintr-un transcript, iar AI Judge verifică dacă itemii sunt riguros ancorați în textul sursă (Da/Nu/Parțial).
+3. **Reporter (`reporter.ts`)**: Generează automat un raport Markdown (`[timestamp]-report.md`) și log-uri JSON pentru a urmări evoluția agenților (Trend-uri de regresie sau îmbunătățire) și a sugera optimizări de prompt (ex: "Calitate Slabă", "Alertă Halucinații").
+
+### 7.3 Teste de Integrare End-to-End (Jest)
+Sistemul dispune de un mediu izolat de teste de integrare capabil să execute fluxuri E2E pe baza de date reală Supabase (via API-ul Service Role) și API-ul real Google Gemini.  
+
+**Facilități:**
+- **Mediu Controlat**: Se folosește `scripts/setup-test-db.ts` pentru a crea efemer utilizatori în tabela auth, evitând erorile de constrângere la Foreign Key și asigurând izolare completă pe bază de `TEST_USER_ID`.
+- **Pipeline-ul RAG/Ingestie (`__tests__/integration/ingestion.test.ts`)**: Testează de la upload-ul fișierelor în Supabase Storage, inserția materialului, chunking și vectorizare, până la query-ul semantic folosind RPC-ul (`hybrid_search_chunks`).
+- **GeneratorAgent (`__tests__/integration/generator.test.ts`)**: Se validează output-ul integrat, parsarea și formatarea complexă a LLM-ului.
+
+**Rulare:**
+```bash
+cd learnflow
+npm run test:integration
+```
+*(Asigură-te că există un fișier `.env.test` configurat conform instrucțiunilor din README).*
+
+---
+
 *Documentație generată pentru LearnFlow — Iunie 2026*
-*Referințe cod: [agents/](agents/) · [tests/](tests/) · [requirements.txt](requirements.txt)*
+*Referințe cod: [agents/](agents/) · [tests/](tests/) · [learnflow/__tests__/](learnflow/__tests__/) · [learnflow/evals/](learnflow/evals/)*
