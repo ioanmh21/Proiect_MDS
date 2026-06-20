@@ -1,5 +1,14 @@
 # LearnFlow
 
+## Demo Offline
+[Link Demo](https://drive.google.com/file/d/1cr84v6SvD7YbhCKGur0r5WyxaFhJ3JpJ/view?usp=sharing)
+
+## Documentație și Rapoarte
+- [Backlog Task-uri](backlog.md)
+- [Raport utilizare AI](raport_utilizare_ai.md)
+- [Documentație teste](documentatie.md)
+
+---
 
 ## User Stories
 
@@ -89,3 +98,13 @@ Pentru a rula testele de integrare (care fac apeluri reale la baza de date și l
    npm run test:integration
    ```
 *Atenție: Scripturile de setup din teste vor șterge automat orice date asociate cu `TEST_USER_ID` înainte și după rularea suitei.*
+
+---
+
+## Diagrame Arhitectură și Workflow-uri
+
+![Diagrama 1](AI%20Agent%20Framework%20for-2026-06-20-102750.png)
+
+![Diagrama 2](AI%20Agent%20Framework%20for-2026-06-20-103050.png)
+
+![Diagrama 3](AI%20Agent%20Framework%20for-2026-06-20-103133.png)
