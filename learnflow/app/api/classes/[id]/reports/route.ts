@@ -87,11 +87,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const fullName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Elev Necunoscut';
     
     // Teste
-    const sTests = testResults?.filter(t => t.student_id === sId) || [];
+    const sTests = testResults?.filter((t: any) => t.student_id === sId) || [];
     const testsCompleted = sTests.length;
     let averageScore = 0;
     if (testsCompleted > 0) {
-      const sum = sTests.reduce((acc, t) => acc + (t.score || 0), 0);
+      const sum = sTests.reduce((acc: number, t: any) => acc + (t.score || 0), 0);
       averageScore = Math.round(sum / testsCompleted);
     }
     
@@ -105,9 +105,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Studiu
-    const sSessions = studySessions?.filter(ss => ss.student_id === sId) || [];
+    const sSessions = studySessions?.filter((ss: any) => ss.student_id === sId) || [];
     let studyTimeMinutes = 0;
-    sSessions.forEach(ss => {
+    sSessions.forEach((ss: any) => {
       if (ss.duration_minutes) {
         studyTimeMinutes += ss.duration_minutes;
       } else if (ss.started_at && ss.ended_at) {
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Concept repetat alerts
-    const sProfile = studentProfiles?.find(p => p.id === sId);
+    const sProfile = studentProfiles?.find((p: any) => p.id === sId);
     if (sProfile && sProfile.weak_concepts) {
       const weakConcepts = sProfile.weak_concepts;
       weakConcepts.forEach((wc: any, index: number) => {
